@@ -22,8 +22,8 @@ import StorageCipher18Implementation from './StorageCipher18Implementation';
 import StorageCipherGCMImplementation from './StorageCipherGCMImplementation';
 
 export enum OhosKeyCipherAlgorithm {
-  RSA_ECB_PKCS1Padding = "RSA_ECB_PKCS1Padding",
-  RSA_ECB_OAEPwithSHA_256andMGF1Padding = "RSA_ECB_OAEPwithSHA_256andMGF1Padding"
+  rsaEcbPKCS1Padding = "rsaEcbPKCS1Padding",
+  rsaEcbOAEPWithSHA256AndMGF1Padding = "rsaEcbOAEPWithSHA256AndMGF1Padding"
 }
 
 export type KeyCipherFunction = (context: Context) => RSACipher18Implementation;
@@ -40,22 +40,22 @@ export class KeyCipherAlgorithmInfo {
   }
 
   static keyCipherAlgorithms: Record<OhosKeyCipherAlgorithm, KeyCipherAlgorithmInfo> = {
-    [OhosKeyCipherAlgorithm.RSA_ECB_PKCS1Padding]: new KeyCipherAlgorithmInfo(
+    [OhosKeyCipherAlgorithm.rsaEcbPKCS1Padding]: new KeyCipherAlgorithmInfo(
       (context: Context) => new RSACipher18Implementation(context),
       1,
-      OhosKeyCipherAlgorithm.RSA_ECB_PKCS1Padding
+      OhosKeyCipherAlgorithm.rsaEcbPKCS1Padding
     ),
-    [OhosKeyCipherAlgorithm.RSA_ECB_OAEPwithSHA_256andMGF1Padding]: new KeyCipherAlgorithmInfo(
+    [OhosKeyCipherAlgorithm.rsaEcbOAEPWithSHA256AndMGF1Padding]: new KeyCipherAlgorithmInfo(
       (context: Context) => new RSACipherOAEPImplementation(context),
       1,
-      OhosKeyCipherAlgorithm.RSA_ECB_OAEPwithSHA_256andMGF1Padding
+      OhosKeyCipherAlgorithm.rsaEcbOAEPWithSHA256AndMGF1Padding
     )
   };
 }
 
 export enum OhosStorageCipherAlgorithm {
-  AES_CBC_PKCS7Padding = "AES_CBC_PKCS7Padding",
-  AES_GCM_NoPadding = "AES_GCM_NoPadding"
+  aesCbcPKCS7Padding = "aesCbcPKCS7Padding",
+  aesGcmNoPadding = "aesGcmNoPadding"
 }
 
 export type StorageCipherFunction = (context: Context, keyCipher: KeyCipher) => StorageCipher18Implementation;
@@ -72,15 +72,15 @@ export class StorageCipherAlgorithmInfo {
   }
 
   static storageCipherAlgorithms: Record<OhosStorageCipherAlgorithm, StorageCipherAlgorithmInfo> = {
-    [OhosStorageCipherAlgorithm.AES_CBC_PKCS7Padding]: new StorageCipherAlgorithmInfo(
+    [OhosStorageCipherAlgorithm.aesCbcPKCS7Padding]: new StorageCipherAlgorithmInfo(
       (context: Context, rsaCipher: KeyCipher) => new StorageCipher18Implementation(context, rsaCipher),
       1,
-      OhosStorageCipherAlgorithm.AES_CBC_PKCS7Padding
+      OhosStorageCipherAlgorithm.aesCbcPKCS7Padding
     ),
-    [OhosStorageCipherAlgorithm.AES_GCM_NoPadding]: new StorageCipherAlgorithmInfo(
+    [OhosStorageCipherAlgorithm.aesGcmNoPadding]: new StorageCipherAlgorithmInfo(
       (context: Context, rsaCipher: KeyCipher) => new StorageCipherGCMImplementation(context, rsaCipher),
       1,
-      OhosStorageCipherAlgorithm.AES_GCM_NoPadding
+      OhosStorageCipherAlgorithm.aesGcmNoPadding
     )
   };
 }
@@ -88,11 +88,11 @@ export class StorageCipherAlgorithmInfo {
 const TAG: string = 'SecureStorage::StorageCipherFactory';
 
 export class StorageCipherFactory {
-  private ELEMENT_PREFERENCES_ALGORITHM_PREFIX: string = "FlutterSecureSAlgorithm";
+  private ELEMENT_PREFERENCES_ALGORITHM_PREFIX: string = "FlutterSecureAlgorithm";
   private ELEMENT_PREFERENCES_ALGORITHM_KEY: string = this.ELEMENT_PREFERENCES_ALGORITHM_PREFIX + "Key";
   private ELEMENT_PREFERENCES_ALGORITHM_STORAGE: string = this.ELEMENT_PREFERENCES_ALGORITHM_PREFIX + "Storage";
-  private DEFAULT_KEY_ALGORITHM: OhosKeyCipherAlgorithm = OhosKeyCipherAlgorithm.RSA_ECB_PKCS1Padding;
-  private DEFAULT_STORAGE_ALGORITHM: OhosStorageCipherAlgorithm = OhosStorageCipherAlgorithm.AES_CBC_PKCS7Padding;
+  private DEFAULT_KEY_ALGORITHM: OhosKeyCipherAlgorithm = OhosKeyCipherAlgorithm.rsaEcbPKCS1Padding;
+  private DEFAULT_STORAGE_ALGORITHM: OhosStorageCipherAlgorithm = OhosStorageCipherAlgorithm.aesCbcPKCS7Padding;
 
   private savedKeyAlgorithm: KeyCipherAlgorithmInfo | null = null;
   private currentKeyAlgorithm: KeyCipherAlgorithmInfo | null = null;

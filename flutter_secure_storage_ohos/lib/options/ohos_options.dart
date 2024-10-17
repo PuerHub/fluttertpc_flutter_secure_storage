@@ -1,13 +1,13 @@
 part of '../flutter_secure_storage_ohos.dart';
 
 enum OhosKeyCipherAlgorithm {
-  RSA_ECB_PKCS1Padding,
-  RSA_ECB_OAEPwithSHA_256andMGF1Padding,
+  rsaEcbPKCS1Padding,
+  rsaEcbOAEPWithSHA256AndMGF1Padding,
 }
 
 enum OhosStorageCipherAlgorithm {
-  AES_CBC_PKCS7Padding,
-  AES_GCM_NoPadding,
+  aesCbcPKCS7Padding,
+  aesGcmNoPadding,
 }
 
 class OhosOptions extends Options {
@@ -15,9 +15,9 @@ class OhosOptions extends Options {
     bool encryptedSharedPreferences = false,
     bool resetOnError = false,
     OhosKeyCipherAlgorithm ohosKeyCipherAlgorithm =
-        OhosKeyCipherAlgorithm.RSA_ECB_PKCS1Padding,
+        OhosKeyCipherAlgorithm.rsaEcbPKCS1Padding,
     OhosStorageCipherAlgorithm ohosStorageCipherAlgorithm =
-        OhosStorageCipherAlgorithm.AES_CBC_PKCS7Padding,
+        OhosStorageCipherAlgorithm.aesCbcPKCS7Padding,
     this.sharedPreferencesName,
     this.preferencesKeyPrefix,
   })  : _encryptedSharedPreferences = encryptedSharedPreferences,
@@ -25,28 +25,18 @@ class OhosOptions extends Options {
         _ohosKeyCipherAlgorithm = ohosKeyCipherAlgorithm,
         _ohosStorageCipherAlgorithm = ohosStorageCipherAlgorithm;
 
-  /// EncryptedSharedPrefences are only available on API 23 and greater
+  /// EncryptedSharedPreferences are not support.
   final bool _encryptedSharedPreferences;
 
   /// When an error is detected, automatically reset all data. This will prevent
   /// fatal errors regarding an unknown key however keep in mind that it will
-  /// PERMANENLTY erase the data when an error occurs.
+  /// PERMANENT erase the data when an error occurs.
   ///
   /// Defaults to false.
   final bool _resetOnError;
 
-  /// If EncryptedSharedPrefences is set to false, you can select algorithm
-  /// that will be used to encrypt secret key.
-  /// By default RSA/ECB/PKCS1Padding if used.
-  /// Newer RSA/ECB/OAEPWithSHA-256AndMGF1Padding is available from Ohos 12.
-  /// Plugin will fall back to default algorithm in previous system versions.
   final OhosKeyCipherAlgorithm _ohosKeyCipherAlgorithm;
 
-  /// If EncryptedSharedPrefences is set to false, you can select algorithm
-  /// that will be used to encrypt properties.
-  /// By default AES/CBC/PKCS7Padding if used.
-  /// Newer AES/GCM/NoPadding is available from Ohos 12.
-  /// Plugin will fall back to default algorithm in previous system versions.
   final OhosStorageCipherAlgorithm _ohosStorageCipherAlgorithm;
 
   /// The name of the sharedPreference database to use.
@@ -69,11 +59,7 @@ class OhosOptions extends Options {
   Map<String, String> toMap() => <String, String>{
         'encryptedSharedPreferences': '$_encryptedSharedPreferences',
         'resetOnError': '$_resetOnError',
-        // TODO: Update min SDK from 2.12 to 2.15 in new major version to fix this deprecation warning
-        // ignore: deprecated_member_use
         'ohosKeyCipherAlgorithm': describeEnum(_ohosKeyCipherAlgorithm),
-        // TODO: Update min SDK from 2.12 to 2.15 in new major version to fix this deprecation warning
-        // ignore: deprecated_member_use
         'ohosStorageCipherAlgorithm': describeEnum(_ohosStorageCipherAlgorithm),
         'sharedPreferencesName': sharedPreferencesName ?? '',
         'preferencesKeyPrefix': preferencesKeyPrefix ?? '',
