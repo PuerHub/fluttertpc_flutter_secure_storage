@@ -1,29 +1,175 @@
+import 'package:flutter/services.dart';
+import 'package:flutter_secure_storage_platform_interface/flutter_secure_storage_platform_interface.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_secure_storage_ohos/flutter_secure_storage_ohos.dart';
-import 'package:flutter_secure_storage_ohos/flutter_secure_storage_ohos_platform_interface.dart';
-import 'package:flutter_secure_storage_ohos/flutter_secure_storage_ohos_method_channel.dart';
-import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
-class MockFlutterSecureStorageOhosPlatform
-    with MockPlatformInterfaceMixin
-    implements FlutterSecureStorageOhosPlatform {
-
-  @override
-  Future<String?> getPlatformVersion() => Future.value('42');
-}
+import 'flutter_secure_storage_platform_interface_mock.dart';
 
 void main() {
-  final FlutterSecureStorageOhosPlatform initialPlatform = FlutterSecureStorageOhosPlatform.instance;
+  TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('$MethodChannelFlutterSecureStorageOhos is the default instance', () {
-    expect(initialPlatform, isInstanceOf<MethodChannelFlutterSecureStorageOhos>());
+  group('flutter_secure_storage_platform', () {
+    test('$MethodChannelFlutterSecureStorage() is the default instance', () {
+      expect(
+        FlutterSecureStoragePlatform.instance,
+        isInstanceOf<MethodChannelFlutterSecureStorage>(),
+      );
+    });
+
+    test('Cannot be implemented with `implements`', () {
+      expect(
+        () {
+          FlutterSecureStoragePlatform.instance =
+              ImplementsFlutterSecureStoragePlatform();
+        },
+        throwsA(isInstanceOf<AssertionError>()),
+      );
+    });
+
+    test('Can be mocked with `implements`', () {
+      final mock = MockFlutterSecureStoragePlatform();
+      FlutterSecureStoragePlatform.instance = mock;
+    });
+
+    test('Can be extended', () {
+      FlutterSecureStoragePlatform.instance =
+          ExtendsFlutterSecureStoragePlatform();
+    });
   });
 
-  test('getPlatformVersion', () async {
-    FlutterSecureStorageOhos flutterSecureStorageOhosPlugin = FlutterSecureStorageOhos();
-    MockFlutterSecureStorageOhosPlatform fakePlatform = MockFlutterSecureStorageOhosPlatform();
-    FlutterSecureStorageOhosPlatform.instance = fakePlatform;
+  group('MethodChannelFlutterSecureStorage', () {
+    const channel =
+        MethodChannel('plugins.it_nomads.com/flutter_secure_storage');
 
-    expect(await flutterSecureStorageOhosPlugin.getPlatformVersion(), '42');
+    final log = <MethodCall>[];
+
+    //Remove this and replace with above when 2.3 goes stable
+    channel.setMockMethodCallHandler((call) async {
+      log.add(call);
+
+      if (call.method == 'containsKey') {
+        return true;
+      }
+
+      // Return null explicitly instead of relying on the implicit null
+      // returned by the method channel if no return statement is specified.
+
+      return null;
+    });
+
+    final storage = MethodChannelFlutterSecureStorage();
+    const options = <String, String>{};
+    const key = 'test_key';
+
+    tearDown(() {
+      log.clear();
+    });
+
+    test('read', () async {
+      await storage.read(key: key, options: options);
+
+      expect(
+        log,
+        <Matcher>[
+          isMethodCall(
+            'read',
+            arguments: <String, Object>{
+              'key': key,
+              'options': options,
+            },
+          ),
+        ],
+      );
+    });
+
+    test('write', () async {
+      await storage.write(key: key, value: 'test', options: options);
+      expect(
+        log,
+        <Matcher>[
+          isMethodCall(
+            'write',
+            arguments: <String, Object>{
+              'key': key,
+              'value': 'test',
+              'options': options
+            },
+          ),
+        ],
+      );
+    });
+
+    test('containsKey', () async {
+      await storage.write(key: key, value: 'test', options: options);
+
+      final result = await storage.containsKey(key: key, options: options);
+
+      expect(result, true);
+    });
+
+    test('delete', () async {
+      await storage.write(key: key, value: 'test', options: options);
+      await storage.delete(key: key, options: options);
+      expect(
+        log,
+        <Matcher>[
+          isMethodCall(
+            'write',
+            arguments: <String, Object>{
+              'key': key,
+              'value': 'test',
+              'options': options
+            },
+          ),
+          isMethodCall(
+            'delete',
+            arguments: <String, Object>{
+              'key': key,
+              'options': options,
+            },
+          ),
+        ],
+      );
+    });
+
+    test('deleteAll', () async {
+      await storage.deleteAll(options: options);
+      expect(
+        log,
+        <Matcher>[
+          isMethodCall(
+            'deleteAll',
+            arguments: <String, Object>{
+              'options': options,
+            },
+          ),
+        ],
+      );
+    });
+
+    test('readAll', () async {
+      await storage.write(key: key, value: 'test', options: options);
+
+      await storage.readAll(options: options);
+
+      expect(
+        log,
+        <Matcher>[
+          isMethodCall(
+            'write',
+            arguments: <String, Object>{
+              'key': key,
+              'value': 'test',
+              'options': options
+            },
+          ),
+          isMethodCall(
+            'readAll',
+            arguments: <String, Object>{
+              'options': options,
+            },
+          ),
+        ],
+      );
+    });
   });
 }
