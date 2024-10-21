@@ -24,7 +24,7 @@ export function StringToUint8Array(str: string): Uint8Array {
 export function Uint8ArrayToString(fileData: Uint8Array): string {
   let dataString = '';
   let textDecoder = util.TextDecoder.create('utf-8');
-  dataString = textDecoder.decodeWithStream(fileData);
+  dataString = textDecoder.decodeToString(fileData);
   return dataString;
 }
 

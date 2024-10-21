@@ -38,8 +38,6 @@ class ItemsWidgetState extends State<ItemsWidget> {
 
   Future<void> _readAll() async {
     final all = await _storage.readAll(
-      iOptions: _getIOSOptions(),
-      aOptions: _getAndroidOptions(),
       ohOptions: _getOhosOptions(),
     );
 
@@ -57,8 +55,6 @@ class ItemsWidgetState extends State<ItemsWidget> {
 
   Future<void> _deleteAll() async {
     await _storage.deleteAll(
-      iOptions: _getIOSOptions(),
-      aOptions: _getAndroidOptions(),
       ohOptions: _getOhosOptions(),
     );
     _readAll();
@@ -71,22 +67,11 @@ class ItemsWidgetState extends State<ItemsWidget> {
     await _storage.write(
       key: key,
       value: value,
-      iOptions: _getIOSOptions(),
-      aOptions: _getAndroidOptions(),
       ohOptions: _getOhosOptions(),
     );
     _readAll();
   }
 
-  IOSOptions _getIOSOptions() => IOSOptions(
-        accountName: _getAccountName(),
-      );
-
-  AndroidOptions _getAndroidOptions() => const AndroidOptions(
-        encryptedSharedPreferences: true,
-        // sharedPreferencesName: 'Test2',
-        // preferencesKeyPrefix: 'Test'
-      );
   OhosOptions _getOhosOptions() => const OhosOptions(
     sharedPreferencesName: 'sharedPreferencesName',
   );
@@ -198,8 +183,6 @@ class ItemsWidgetState extends State<ItemsWidget> {
       case _ItemActions.delete:
         await _storage.delete(
           key: item.key,
-          iOptions: _getIOSOptions(),
-          aOptions: _getAndroidOptions(),
           ohOptions: _getOhosOptions(),
         );
         _readAll();
@@ -214,8 +197,6 @@ class ItemsWidgetState extends State<ItemsWidget> {
           await _storage.write(
             key: item.key,
             value: result,
-            iOptions: _getIOSOptions(),
-            aOptions: _getAndroidOptions(),
             ohOptions: _getOhosOptions(),
           );
           _readAll();
@@ -235,8 +216,7 @@ class ItemsWidgetState extends State<ItemsWidget> {
       case _ItemActions.read:
         final key = await _displayTextInputDialog(context, item.key);
         final result =
-            await _storage.read(key: key, aOptions: _getAndroidOptions(),
-              ohOptions: _getOhosOptions());
+            await _storage.read(key: key, ohOptions: _getOhosOptions());
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
