@@ -23,6 +23,9 @@ flutter:
         default_package: flutter_secure_storage_web
       windows:
         default_package: flutter_secure_storage_windows
+      ohos:
+        package: com.it_nomads.fluttersecurestorage
+        pluginClass: FlutterSecureStorageOhosPlugin
 
 dependencies:
   flutter:
@@ -51,3 +54,4 @@ platforms:
   macos:
   web:
   windows:
+  ohos:

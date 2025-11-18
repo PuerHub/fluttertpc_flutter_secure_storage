@@ -1,3 +1,6 @@
+## Unreleased
+* [OHOS] Added the native OHOS implementation and associated `OhosOptions` APIs directly to the main plugin.
+
 ## 8.0.0
 Breaking changes:
 * [macOS] The minimum macOS version supported is now 10.14.

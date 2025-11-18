@@ -20,10 +20,10 @@
 ...
 
 dependencies:
-  flutter_secure_storage_ohos:
+  flutter_secure_storage:
     git: 
-      url: https://gitcode.com/openharmony-sig/fluttertpc_flutter_secure_storage.git
-      path: flutter_secure_storage_ohos
+      url: https://gitcode.com/fangxiang_1995/flutter_secure_storage.git
+      path: flutter_secure_storage
 
 ...
 ```
@@ -38,7 +38,7 @@ flutter pub get
 
 ### 1.2 使用案例
 
-使用案例详见 [example](flutter_secure_storage_ohos/example/lib/main.dart)
+使用案例详见 [example](flutter_secure_storage/example/lib/main.dart)
 
 ## 2. 约束与限制
 
@@ -105,4 +105,4 @@ flutter pub get
 
 ## 7. 开源协议
 
-本项目基于 [The BSD-3-Clause (license)](flutter_secure_storage_ohos/LICENSE) ，请自由地享受和参与开源。
+本项目基于 [The BSD-3-Clause (license)](flutter_secure_storage/ohos/LICENSE) ，请自由地享受和参与开源。

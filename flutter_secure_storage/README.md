@@ -84,6 +84,10 @@ You need to
 - [disable autobackup](https://developer.android.com/guide/topics/data/autobackup#EnablingAutoBackup), [details](https://github.com/mogol/flutter_secure_storage/issues/13#issuecomment-421083742)
 - [exclude sharedprefs](https://developer.android.com/guide/topics/data/autobackup#IncludingFiles) `FlutterSecureStorage` used by the plugin, [details](https://github.com/mogol/flutter_secure_storage/issues/43#issuecomment-471642126)
 
+## Configure OpenHarmony (OHOS) version
+
+The plugin bundles an OpenHarmony implementation that mirrors the iOS and Android APIs. Include the generated `ohos` module when configuring your runners in DevEco Studio/Flutter and customize behaviors (like database and prefix names) via `OhosOptions`. Refer to `README.OpenHarmony.md` (and `README.OpenHarmony_CN.md`) for detailed setup guidance, supported APIs, and compatibility notes.
+
 ## Configure Web Version
 
 Flutter Secure Storage uses an experimental implementation using WebCrypto. Use at your own risk at this time. Feedback welcome to improve it. The intent is that the browser is creating the private key, and as a result, the encrypted strings in local_storage are not portable to other browsers or other machines and will only work on the same domain.

@@ -53,6 +53,20 @@ Please note that this table represents the functions implemented in this reposit
 | macOS   | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: |
 | Web     | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: |
 
+## Installation
+
+This repository hosts the OpenHarmony-enabled fork of `flutter_secure_storage`. To depend directly on these sources, add the Git reference to your app's `pubspec.yaml`:
+
+```yaml
+dependencies:
+  flutter_secure_storage:
+    git:
+      url: https://gitcode.com/fangxiang_1995/flutter_secure_storage.git
+      path: flutter_secure_storage
+```
+
+Run `flutter pub get` afterwards so the local OHOS implementation and Dart APIs are pulled into your project.
+
 ## Getting Started
 
 If not present already, please call WidgetsFlutterBinding.ensureInitialized() in your main before you do anything with the MethodChannel. [Please see this issue  for more info.](https://github.com/mogol/flutter_secure_storage/issues/336)

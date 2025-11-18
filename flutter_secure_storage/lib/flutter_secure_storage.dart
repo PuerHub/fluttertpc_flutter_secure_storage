@@ -12,12 +12,14 @@ part './options/apple_options.dart';
 part './options/ios_options.dart';
 part './options/linux_options.dart';
 part './options/macos_options.dart';
+part './options/ohos_options.dart';
 part './options/web_options.dart';
 part './options/windows_options.dart';
 
 class FlutterSecureStorage {
   final IOSOptions iOptions;
   final AndroidOptions aOptions;
+  final OhosOptions ohOptions;
   final LinuxOptions lOptions;
   final WindowsOptions wOptions;
   final WebOptions webOptions;
@@ -26,6 +28,7 @@ class FlutterSecureStorage {
   const FlutterSecureStorage({
     this.iOptions = IOSOptions.defaultOptions,
     this.aOptions = AndroidOptions.defaultOptions,
+    this.ohOptions = OhosOptions.defaultOptions,
     this.lOptions = LinuxOptions.defaultOptions,
     this.wOptions = WindowsOptions.defaultOptions,
     this.webOptions = WebOptions.defaultOptions,
@@ -44,6 +47,7 @@ class FlutterSecureStorage {
   /// [value] required value
   /// [iOptions] optional iOS options
   /// [aOptions] optional Android options
+  /// [ohOptions] optional Ohos options
   /// [lOptions] optional Linux options
   /// [webOptions] optional web options
   /// [mOptions] optional MacOs options
@@ -54,41 +58,44 @@ class FlutterSecureStorage {
     required String? value,
     IOSOptions? iOptions,
     AndroidOptions? aOptions,
+    OhosOptions? ohOptions,
     LinuxOptions? lOptions,
     WebOptions? webOptions,
     MacOsOptions? mOptions,
     WindowsOptions? wOptions,
-  }) =>
-      value == null
-          ? _platform.delete(
-              key: key,
-              options: _selectOptions(
-                iOptions,
-                aOptions,
-                lOptions,
-                webOptions,
-                mOptions,
-                wOptions,
-              ),
-            )
-          : _platform.write(
-              key: key,
-              value: value,
-              options: _selectOptions(
-                iOptions,
-                aOptions,
-                lOptions,
-                webOptions,
-                mOptions,
-                wOptions,
-              ),
-            );
+  }) => value == null
+      ? _platform.delete(
+          key: key,
+          options: _selectOptions(
+            iOptions,
+            aOptions,
+            ohOptions,
+            lOptions,
+            webOptions,
+            mOptions,
+            wOptions,
+          ),
+        )
+      : _platform.write(
+          key: key,
+          value: value,
+          options: _selectOptions(
+            iOptions,
+            aOptions,
+            ohOptions,
+            lOptions,
+            webOptions,
+            mOptions,
+            wOptions,
+          ),
+        );
 
   /// Decrypts and returns the value for the given [key] or null if [key] is not in the storage.
   ///
   /// [key] shouldn't be null.
   /// [iOptions] optional iOS options
   /// [aOptions] optional Android options
+  /// [ohOptions] optional Ohos options
   /// [lOptions] optional Linux options
   /// [webOptions] optional web options
   /// [mOptions] optional MacOs options
@@ -98,28 +105,30 @@ class FlutterSecureStorage {
     required String key,
     IOSOptions? iOptions,
     AndroidOptions? aOptions,
+    OhosOptions? ohOptions,
     LinuxOptions? lOptions,
     WebOptions? webOptions,
     MacOsOptions? mOptions,
     WindowsOptions? wOptions,
-  }) =>
-      _platform.read(
-        key: key,
-        options: _selectOptions(
-          iOptions,
-          aOptions,
-          lOptions,
-          webOptions,
-          mOptions,
-          wOptions,
-        ),
-      );
+  }) => _platform.read(
+    key: key,
+    options: _selectOptions(
+      iOptions,
+      aOptions,
+      ohOptions,
+      lOptions,
+      webOptions,
+      mOptions,
+      wOptions,
+    ),
+  );
 
   /// Returns true if the storage contains the given [key].
   ///
   /// [key] shouldn't be null.
   /// [iOptions] optional iOS options
   /// [aOptions] optional Android options
+  /// [ohOptions] optional Ohos options
   /// [lOptions] optional Linux options
   /// [webOptions] optional web options
   /// [mOptions] optional MacOs options
@@ -129,22 +138,23 @@ class FlutterSecureStorage {
     required String key,
     IOSOptions? iOptions,
     AndroidOptions? aOptions,
+    OhosOptions? ohOptions,
     LinuxOptions? lOptions,
     WebOptions? webOptions,
     MacOsOptions? mOptions,
     WindowsOptions? wOptions,
-  }) =>
-      _platform.containsKey(
-        key: key,
-        options: _selectOptions(
-          iOptions,
-          aOptions,
-          lOptions,
-          webOptions,
-          mOptions,
-          wOptions,
-        ),
-      );
+  }) => _platform.containsKey(
+    key: key,
+    options: _selectOptions(
+      iOptions,
+      aOptions,
+      ohOptions,
+      lOptions,
+      webOptions,
+      mOptions,
+      wOptions,
+    ),
+  );
 
   /// Deletes associated value for the given [key].
   ///
@@ -153,6 +163,7 @@ class FlutterSecureStorage {
   /// [key] shouldn't be null.
   /// [iOptions] optional iOS options
   /// [aOptions] optional Android options
+  /// [ohOptions] optional Ohos options
   /// [lOptions] optional Linux options
   /// [webOptions] optional web options
   /// [mOptions] optional MacOs options
@@ -162,27 +173,29 @@ class FlutterSecureStorage {
     required String key,
     IOSOptions? iOptions,
     AndroidOptions? aOptions,
+    OhosOptions? ohOptions,
     LinuxOptions? lOptions,
     WebOptions? webOptions,
     MacOsOptions? mOptions,
     WindowsOptions? wOptions,
-  }) =>
-      _platform.delete(
-        key: key,
-        options: _selectOptions(
-          iOptions,
-          aOptions,
-          lOptions,
-          webOptions,
-          mOptions,
-          wOptions,
-        ),
-      );
+  }) => _platform.delete(
+    key: key,
+    options: _selectOptions(
+      iOptions,
+      aOptions,
+      ohOptions,
+      lOptions,
+      webOptions,
+      mOptions,
+      wOptions,
+    ),
+  );
 
   /// Decrypts and returns all keys with associated values.
   ///
   /// [iOptions] optional iOS options
   /// [aOptions] optional Android options
+  /// [ohOptions] optional Ohos options
   /// [lOptions] optional Linux options
   /// [webOptions] optional web options
   /// [mOptions] optional MacOs options
@@ -191,26 +204,28 @@ class FlutterSecureStorage {
   Future<Map<String, String>> readAll({
     IOSOptions? iOptions,
     AndroidOptions? aOptions,
+    OhosOptions? ohOptions,
     LinuxOptions? lOptions,
     WebOptions? webOptions,
     MacOsOptions? mOptions,
     WindowsOptions? wOptions,
-  }) =>
-      _platform.readAll(
-        options: _selectOptions(
-          iOptions,
-          aOptions,
-          lOptions,
-          webOptions,
-          mOptions,
-          wOptions,
-        ),
-      );
+  }) => _platform.readAll(
+    options: _selectOptions(
+      iOptions,
+      aOptions,
+      ohOptions,
+      lOptions,
+      webOptions,
+      mOptions,
+      wOptions,
+    ),
+  );
 
   /// Deletes all keys with associated values.
   ///
   /// [iOptions] optional iOS options
   /// [aOptions] optional Android options
+  /// [ohOptions] optional Ohos options
   /// [lOptions] optional Linux options
   /// [webOptions] optional web options
   /// [mOptions] optional MacOs options
@@ -219,26 +234,28 @@ class FlutterSecureStorage {
   Future<void> deleteAll({
     IOSOptions? iOptions,
     AndroidOptions? aOptions,
+    OhosOptions? ohOptions,
     LinuxOptions? lOptions,
     WebOptions? webOptions,
     MacOsOptions? mOptions,
     WindowsOptions? wOptions,
-  }) =>
-      _platform.deleteAll(
-        options: _selectOptions(
-          iOptions,
-          aOptions,
-          lOptions,
-          webOptions,
-          mOptions,
-          wOptions,
-        ),
-      );
+  }) => _platform.deleteAll(
+    options: _selectOptions(
+      iOptions,
+      aOptions,
+      ohOptions,
+      lOptions,
+      webOptions,
+      mOptions,
+      wOptions,
+    ),
+  );
 
   /// Select correct options based on current platform
   Map<String, String> _selectOptions(
     IOSOptions? iOptions,
     AndroidOptions? aOptions,
+    OhosOptions? ohOptions,
     LinuxOptions? lOptions,
     WebOptions? webOptions,
     MacOsOptions? mOptions,
@@ -256,6 +273,8 @@ class FlutterSecureStorage {
       return wOptions?.params ?? this.wOptions.params;
     } else if (Platform.isMacOS) {
       return mOptions?.params ?? this.mOptions.params;
+    } else if (Platform.operatingSystem == 'ohos') {
+      return ohOptions?.params ?? this.ohOptions.params;
     } else {
       throw UnsupportedError(UNSUPPORTED_PLATFORM);
     }
@@ -264,7 +283,8 @@ class FlutterSecureStorage {
   /// Initializes the shared preferences with mock values for testing.
   @visibleForTesting
   static void setMockInitialValues(Map<String, String> values) {
-    FlutterSecureStoragePlatform.instance =
-        TestFlutterSecureStoragePlatform(values);
+    FlutterSecureStoragePlatform.instance = TestFlutterSecureStoragePlatform(
+      values,
+    );
   }
 }

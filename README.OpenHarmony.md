@@ -20,10 +20,10 @@ Go to the project directory and add the following dependencies in pubspec.yaml
 ...
 
 dependencies:
-  flutter_secure_storage_ohos:
+  flutter_secure_storage:
     git: 
-      url: https://gitcode.com/openharmony-sig/fluttertpc_flutter_secure_storage.git
-      path: flutter_secure_storage_ohos
+      url: https://gitcode.com/fangxiang_1995/flutter_secure_storage.git
+      path: flutter_secure_storage
       
 ...
 ```
@@ -38,7 +38,7 @@ flutter pub get
 
 ### 1.2 Usage
 
-For use cases [example](flutter_secure_storage_ohos/example/lib/main.dart)
+For use cases [example](flutter_secure_storage/example/lib/main.dart)
 
 ## 2. Constraints
 
@@ -104,4 +104,4 @@ This document is verified based on the following versions:
 
 ## 7. License
 
-This project is licensed under [The BSD-3-Clause (license)](flutter_secure_storage_ohos/LICENSE).
+This project is licensed under [The BSD-3-Clause (license)](flutter_secure_storage/ohos/LICENSE).
