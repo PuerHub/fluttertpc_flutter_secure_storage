@@ -23,6 +23,7 @@ import { convertObjectToMap, StringToUint8Array, Uint8ArrayToString } from './ut
 
 interface KeyPrefixInterface {
   get getKeyPrefix(): string;
+
   set setKeyPrefix(value: string);
 }
 
@@ -37,7 +38,6 @@ export default class FlutterSecureStorage implements KeyPrefixInterface {
   private storageCipher: StorageCipher | null = null;
   private storageCipherFactory: StorageCipherFactory | null = null;
   base64: util.Base64Helper = new util.Base64Helper();
-  
   // 新增：监听器注册表
   private listeners: Map<string, Set<(value: string | null) => void>> = new Map();
 
@@ -57,8 +57,10 @@ export default class FlutterSecureStorage implements KeyPrefixInterface {
 
   // 新增：注销监听器
   public unregisterListener(key: string, listener?: (value: string | null) => void): void {
-    if (!this.listeners.has(key)) return;
-    
+    if (!this.listeners.has(key)) {
+      return;
+    }
+
     if (listener) {
       this.listeners.get(key)?.delete(listener);
     } else {
@@ -83,9 +85,11 @@ export default class FlutterSecureStorage implements KeyPrefixInterface {
   public async write(key: string, value: string) {
     try {
       this.ensureInitialized();
-      if(!this.dataPreferences || !this.storageCipher) return;
+      if (!this.dataPreferences || !this.storageCipher) {
+        return;
+      }
 
-      let result = await this.storageCipher.encrypt({data: StringToUint8Array(value)});
+      let result = await this.storageCipher.encrypt({ data: StringToUint8Array(value) });
       let resultStr = this.base64.encodeToStringSync(result.data);
 
       await this.dataPreferences.put(key, resultStr);
@@ -120,17 +124,21 @@ export default class FlutterSecureStorage implements KeyPrefixInterface {
     this.ELEMENT_PREFERENCES_KEY_PREFIX = key;
   }
 
-  public async readAll(): Promise<Map<string, string>>{
-    let all: Map<string, string> =  new Map();
+  public async readAll(): Promise<Map<string, string>> {
+    let all: Map<string, string> = new Map();
     try {
       this.ensureInitialized();
-      if(!this.dataPreferences) return new Map();
+      if (!this.dataPreferences) {
+        return new Map();
+      }
 
       let raw: Object = this.dataPreferences.getAllSync();
       let rawMap = convertObjectToMap(raw);
       let promises: Promise<void>[] = [];
 
-      if(!rawMap.size) return all;
+      if (!rawMap.size) {
+        return all;
+      }
       rawMap.forEach(async (rawVal, rawKey) => {
         const keyWithPrefix: string = rawKey;
         if (keyWithPrefix.includes(this.getKeyPrefix)) {
@@ -143,7 +151,7 @@ export default class FlutterSecureStorage implements KeyPrefixInterface {
       })
       await Promise.all(promises);
     } catch (e) {
-      console.error(TAG, `readAll failure: error code ${e.code} error message ${e.message}`);
+      console.error(TAG, 'readAll failure, error code ' + e.code + 'error message ' + e.message);
     }
     return all;
   }
@@ -151,7 +159,9 @@ export default class FlutterSecureStorage implements KeyPrefixInterface {
   public async delete(key: string) {
     try {
       this.ensureInitialized();
-      if(!this.dataPreferences) return;
+      if (!this.dataPreferences) {
+        return;
+      }
 
       await this.dataPreferences.delete(key);
       await this.dataPreferences.flush();
@@ -165,12 +175,14 @@ export default class FlutterSecureStorage implements KeyPrefixInterface {
   public async deleteAll() {
     try {
       this.ensureInitialized();
-      if(!this.dataPreferences) return;
+      if (!this.dataPreferences) {
+        return;
+      }
 
       let raw: Object = this.dataPreferences.getAllSync();
       let rawMap = convertObjectToMap(raw);
 
-      rawMap.forEach(async (rawVal, rawKey) => {
+      rawMap.forEach(async (_, rawKey) => {
         const keyWithPrefix: string = rawKey;
         if (keyWithPrefix.includes(this.getKeyPrefix)) {
           this.dataPreferences?.deleteSync(rawKey);
@@ -178,40 +190,54 @@ export default class FlutterSecureStorage implements KeyPrefixInterface {
       })
 
       await this.dataPreferences.flush();
-      this.listeners.forEach((listeners, key) => {
+      this.listeners.forEach((listeners, _) => {
         listeners.forEach(listener => listener(null)); // 新增：触发所有监听器
       });
     } catch (e) {
       console.error(TAG, `deleteAll failure: error code ${e.code} error message ${e.message}`);
-      this.listeners.forEach((listeners, key) => {
+      this.listeners.forEach((listeners, _) => {
         listeners.forEach(listener => listener(null)); // 新增：失败时触发所有监听器
       });
     }
   }
 
   public containsKey(key: string): boolean {
-    this.ensureInitialized();
-    if (this.dataPreferences) {
-      return this.dataPreferences.hasSync(key);
-    } else {
-      return false;
+    try {
+      this.ensureInitialized();
+      if (this.dataPreferences) {
+        return this.dataPreferences.hasSync(key);
+      } else {
+        return false;
+      }
+    } catch (e) {
+      let message = `containsKey failure: error code ${e.code} error message ${e.message}`;
+      console.error(TAG, message);
+      throw new Error(`${TAG} -> ${message}`);
     }
   }
 
   private ensureInitialized() {
-    if(this.dataPreferences && this.storageCipher) return;
-    this.ensureOptions();
-    // 创建 preferences
-    let nonEncryptedPreferences: preferences.Preferences = preferences.getPreferencesSync(this.context, { name: this.SHARED_PREFERENCES_NAME});
-    // 初始化 storageCipher
-    if (this.storageCipher == null) {
-      try {
-        this.initStorageCipher(nonEncryptedPreferences);
-      } catch (e) {
-        console.error(TAG,"StorageCipher initialization failure", e);
+    try {
+      if (this.dataPreferences && this.storageCipher) {
+        return;
       }
+      this.ensureOptions();
+      // 创建 preferences
+      let nonEncryptedPreferences: preferences.Preferences = preferences.getPreferencesSync(this.context, { name: this.SHARED_PREFERENCES_NAME });
+      // 初始化 storageCipher
+      if (this.storageCipher == null) {
+        try {
+          this.initStorageCipher(nonEncryptedPreferences);
+        } catch (e) {
+          console.error(TAG, "StorageCipher initialization failure", e);
+        }
+      }
+      this.dataPreferences = nonEncryptedPreferences;
+    } catch (e) {
+      let message = `ensureInitialized failure: error code ${e.code} error message ${e.message}`;
+      console.error(TAG, message);
+      throw new Error(`${TAG} -> ${message}`);
     }
-    this.dataPreferences = nonEncryptedPreferences;
   }
 
   protected ensureOptions() {
@@ -260,12 +286,16 @@ export default class FlutterSecureStorage implements KeyPrefixInterface {
       this.storageCipher = storageCipherFactory.getCurrentStorageCipher(this.context as Context);
       let dataPreferencesPromises: Promise<void>[] = [];
       dataPreferencesPromises = Array.from(cache.keys()).map(async (key) => {
-        if(!this.storageCipher || !this.dataPreferences) return;
+        if (!this.storageCipher || !this.dataPreferences) {
+          return;
+        }
         let val = cache.get(key);
-        if (!val) return; // 检查缓存中是否包含该键
+        if (!val) {
+          return;
+        } // 检查缓存中是否包含该键
 
         try {
-          let result: cryptoFramework.DataBlob | undefined = await this.storageCipher.encrypt({data: StringToUint8Array(val)});
+          let result: cryptoFramework.DataBlob | undefined = await this.storageCipher.encrypt({ data: StringToUint8Array(val) });
           let resultBlob = this.base64.encodeToStringSync(result?.data);
           await this.dataPreferences.put(key, resultBlob);
         } catch (e) {

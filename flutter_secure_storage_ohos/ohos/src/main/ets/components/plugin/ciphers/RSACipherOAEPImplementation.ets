@@ -16,42 +16,103 @@
 import { cryptoFramework } from '@kit.CryptoArchitectureKit';
 
 import RSACipher18Implementation from './RSACipher18Implementation';
+import { huks } from '@kit.UniversalKeystoreKit';
+import TLog from '../utils/TLog';
 
 const TAG = 'SecureStorage::RSACipherOAEPImplementation';
 
 export default class RSACipherOAEPImplementation extends RSACipher18Implementation {
-
   constructor(context: Context) {
     super(context);
   }
 
-  protected override getRSACipher(): cryptoFramework.Cipher {
-    return cryptoFramework.createCipher('RSA2048|PKCS1_OAEP|SHA256|MGF1_SHA1');
-  }
-
   override async RSAEncrypt(key: cryptoFramework.Key): Promise<Uint8Array> {
-    this.createRSAKeysIfNeeded();
-    let data: Uint8Array = key.getEncoded().data;
-    let publicKey = this.getPublicKey();
-
-    let cipher: cryptoFramework.Cipher = this.getRSACipher();
-    cipher.initSync(cryptoFramework.CryptoMode.ENCRYPT_MODE, publicKey, null);
-    const finalRes = cipher.doFinalSync({
-      data
-    });
-    return finalRes.data;
+    try {
+      await this.createRSAKeysIfNeeded();
+      let data: Uint8Array = key.getEncoded().data;
+      let options: huks.HuksOptions = {
+        properties: this.getRsaEncryptProperties(),
+        inData: data,
+      }
+      return this.dataEncrypt(options);
+    } catch (e) {
+      let message = `RSAEncrypt failure: error code ${e.code} error message ${e.message}`;
+      console.error(TAG, message);
+      throw new Error(`${TAG} -> ${message}`);
+    }
   }
 
   override async RSADecrypt(wrappedKey: Uint8Array, algorithm: string): Promise<cryptoFramework.Key> {
-    this.createRSAKeysIfNeeded();
-    let privateKey = this.getPrivateKey();
+    await this.createRSAKeysIfNeeded();
+    let options: huks.HuksOptions = {
+      properties: this.getRsaDecryptProperties(),
+      inData: wrappedKey,
+    }
+    return this.dataDecrypt(options, algorithm);
+  }
 
-    let cipher: cryptoFramework.Cipher = this.getRSACipher();
-    cipher.initSync(cryptoFramework.CryptoMode.DECRYPT_MODE, privateKey, null);
-    const finalRes = cipher.doFinalSync({
-      data: wrappedKey
-    });
-    let res: cryptoFramework.Key = this.getKey(finalRes, algorithm);
-    return res;
+  /////////////////////////////////////////ohos.security.huks//////////////////////////////////////
+
+  protected override getRsaGenerateProperties(): Array<huks.HuksParam> {
+    let properties: Array<huks.HuksParam> = [{
+      tag: huks.HuksTag.HUKS_TAG_ALGORITHM,
+      value: huks.HuksKeyAlg.HUKS_ALG_RSA
+    }, {
+      tag: huks.HuksTag.HUKS_TAG_KEY_SIZE,
+      value: huks.HuksKeySize.HUKS_RSA_KEY_SIZE_2048
+    }, {
+      tag: huks.HuksTag.HUKS_TAG_PURPOSE,
+      value: huks.HuksKeyPurpose.HUKS_KEY_PURPOSE_ENCRYPT |
+      huks.HuksKeyPurpose.HUKS_KEY_PURPOSE_DECRYPT
+    }];
+    return properties;
+  }
+
+  protected override getRsaEncryptProperties(): Array<huks.HuksParam> {
+    let properties: Array<huks.HuksParam> = [{
+      tag: huks.HuksTag.HUKS_TAG_ALGORITHM,
+      value: huks.HuksKeyAlg.HUKS_ALG_RSA
+    }, {
+      tag: huks.HuksTag.HUKS_TAG_KEY_SIZE,
+      value: huks.HuksKeySize.HUKS_RSA_KEY_SIZE_2048
+    }, {
+      tag: huks.HuksTag.HUKS_TAG_PURPOSE,
+      value: huks.HuksKeyPurpose.HUKS_KEY_PURPOSE_ENCRYPT
+    }, {
+      tag: huks.HuksTag.HUKS_TAG_PADDING,
+      value: huks.HuksKeyPadding.HUKS_PADDING_OAEP
+    }, {
+      tag: huks.HuksTag.HUKS_TAG_BLOCK_MODE,
+      value: huks.HuksCipherMode.HUKS_MODE_ECB
+    }, {
+      tag: huks.HuksTag.HUKS_TAG_DIGEST,
+      value: huks.HuksKeyDigest.HUKS_DIGEST_SHA256
+    }];
+    TLog.i(TAG, 'RSA加密算法: RSA_ECB_OAEPwithSHA_256andMGF1Padding');
+    return properties;
+  }
+
+  protected override getRsaDecryptProperties(): Array<huks.HuksParam> {
+    let properties: Array<huks.HuksParam> = [{
+      tag: huks.HuksTag.HUKS_TAG_ALGORITHM,
+      value: huks.HuksKeyAlg.HUKS_ALG_RSA
+    }, {
+      tag: huks.HuksTag.HUKS_TAG_KEY_SIZE,
+      value: huks.HuksKeySize.HUKS_RSA_KEY_SIZE_2048
+    }, {
+      tag: huks.HuksTag.HUKS_TAG_PURPOSE,
+      value: huks.HuksKeyPurpose.HUKS_KEY_PURPOSE_DECRYPT
+    }, {
+      tag: huks.HuksTag.HUKS_TAG_PADDING,
+      value: huks.HuksKeyPadding.HUKS_PADDING_OAEP
+    }, {
+      tag: huks.HuksTag.HUKS_TAG_BLOCK_MODE,
+      value: huks.HuksCipherMode.HUKS_MODE_ECB
+    }, {
+      tag: huks.HuksTag.HUKS_TAG_DIGEST,
+      value: huks.HuksKeyDigest.HUKS_DIGEST_SHA256
+    }];
+    TLog.i(TAG, 'RSA解密算法: RSA_ECB_OAEPwithSHA_256andMGF1Padding');
+    return properties;
   }
 }

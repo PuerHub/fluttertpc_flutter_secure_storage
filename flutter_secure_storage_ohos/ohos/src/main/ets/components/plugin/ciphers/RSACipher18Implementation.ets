@@ -13,157 +13,232 @@
  * limitations under the License.
  */
 
-import { preferences } from '@kit.ArkData';
 import { cryptoFramework } from '@kit.CryptoArchitectureKit';
 import { util } from '@kit.ArkTS';
 
 import KeyCipher from './KeyCipher';
+import { huks } from '@kit.UniversalKeystoreKit';
+import TLog from '../utils/TLog';
 
 const TAG = 'SecureStorage::RSACipher18Implementation';
 
 export default class RSACipher18Implementation implements KeyCipher {
   private SECRET_RSA_KEY_PREFERENCES_NAME: string = 'FlutterSecureRSAKeyStorage';
-  private TYPE_RSA: string = "RSA2048";
   protected context: Context | null = null;
-  protected cipher: cryptoFramework.Cipher | null = null;
   base64: util.Base64Helper = new util.Base64Helper();
-  preferences: preferences.Preferences | null = null;
 
   constructor(context: Context) {
     this.context = context;
-    this.preferences = this.getPreferences();
   }
 
   async RSAEncrypt(key: cryptoFramework.Key): Promise<Uint8Array> {
-    this.createRSAKeysIfNeeded();
+    try {
+      await this.createRSAKeysIfNeeded();
+      let data: Uint8Array = key.getEncoded().data;
+      let options: huks.HuksOptions = {
+        properties: this.getRsaEncryptProperties(),
+        inData: data,
+      }
+      return this.dataEncrypt(options);
+    } catch (e) {
+      let message = `RSAEncrypt failure: error code ${e.code} error message ${e.message}`;
+      console.error(TAG, message);
+      throw new Error(`${TAG} -> ${message}`);
+    }
+  }
 
-    let data: Uint8Array = key.getEncoded().data;
-    let publicKey = this.getPublicKey();
+  protected async dataEncrypt(options: huks.HuksOptions): Promise<Uint8Array> {
+    // 调用initSession获取handle
+    let handle: number | null = null;
+    await huks.initSession(this.SECRET_RSA_KEY_PREFERENCES_NAME, options)
+      .then((data) => {
+        handle = data.handle;
+      }).catch((error: Error) => {
+        console.error(TAG, `promise: init EncryptDataRsa failed, ${JSON.stringify(error)}`);
+      });
 
-    let cipher: cryptoFramework.Cipher = this.getRSACipher();
-    cipher.initSync(cryptoFramework.CryptoMode.ENCRYPT_MODE, publicKey, null);
-    const finalRes = cipher.doFinalSync({
-      data
-    });
-    return finalRes.data;
+    // 调用finishSession获取加密后的密文
+    let outData: Uint8Array | null = null;
+    if (handle != null) {
+      await huks.finishSession(handle, options)
+        .then((data) => {
+          outData = data.outData as Uint8Array;
+          TLog.i(TAG, `promise: encrypt data success, data is ${this.base64.encodeToStringSync(outData)}`);
+        }).catch((error: Error) => {
+          console.error(TAG, `promise: encrypt data failed, ${JSON.stringify(error)}`);
+        });
+      if (outData != null) {
+        return outData;
+      }
+    }
+    throw new Error(`${TAG} -> RSAEncrypt: 加密失败`);
   }
 
   async RSADecrypt(wrappedKey: Uint8Array, algorithm: string): Promise<cryptoFramework.Key> {
-    this.createRSAKeysIfNeeded();
-    let privateKey = this.getPrivateKey();
+    await this.createRSAKeysIfNeeded();
+    let options: huks.HuksOptions = {
+      properties: this.getRsaDecryptProperties(),
+      inData: wrappedKey,
+    }
+    return this.dataDecrypt(options, algorithm);
+  }
 
-    let cipher: cryptoFramework.Cipher = this.getRSACipher();
-    cipher.initSync(cryptoFramework.CryptoMode.DECRYPT_MODE, privateKey, null);
-    const finalRes = cipher.doFinalSync({
-      data: wrappedKey
-    });
-    let res: cryptoFramework.Key = this.getKey(finalRes, algorithm);
-    return res;
+  protected async dataDecrypt(options: huks.HuksOptions, algorithm: string): Promise<cryptoFramework.Key> {
+    // 调用initSession获取handle
+    let handle: number | null = null;
+    await huks.initSession(this.SECRET_RSA_KEY_PREFERENCES_NAME, options)
+      .then((data) => {
+        handle = data.handle;
+      }).catch((error: Error) => {
+        console.error(TAG, `promise: init DecryptDataRsa failed, ${JSON.stringify(error)}`);
+      });
+
+    // 调用finishSession获取解密后的数据
+    let outData: Uint8Array | null = null;
+    await huks.finishSession(handle, options)
+      .then((data) => {
+        outData = data.outData as Uint8Array;
+        TLog.i(TAG, `promise: decrypt data success, data is ${this.base64.encodeToStringSync(outData)}`);
+      }).catch((error: Error) => {
+        console.error(TAG, `promise: decrypt data failed, ${JSON.stringify(error)}`);
+      })
+
+    if (outData != null) {
+      return this.getKey({
+        data: outData
+      }, algorithm);
+    }
+    throw new Error(`${TAG} -> RSADecrypt: 解密失败`);
   }
 
   // 把 DataBlob 转为 Key
   protected getKey(keyBlob: cryptoFramework.DataBlob, algorithm: string): cryptoFramework.Key {
-    let symKeyGenerator = cryptoFramework.createSymKeyGenerator(algorithm);
-    let symKey: cryptoFramework.Key = symKeyGenerator.convertKeySync(keyBlob);
-    return symKey;
-  }
-
-  protected getRSACipher() {
-    return cryptoFramework.createCipher('RSA2048|PKCS1');
+    try {
+      let symKeyGenerator = cryptoFramework.createSymKeyGenerator(algorithm);
+      let symKey: cryptoFramework.Key = symKeyGenerator.convertKeySync(keyBlob);
+      return symKey;
+    } catch (e) {
+      let message = `getKey failure: error code ${e.code} error message ${e.message}`;
+      console.error(TAG, message);
+      throw new Error(`${TAG} -> ${message}`);
+    }
   }
 
   protected async createRSAKeysIfNeeded() {
-    if(!this.preferences) {
-      this.preferences = this.getPreferences();
-    };
-    let rsaPreferencesPubKey: string = this.getRSAPreferencesPubKey();
-    let rsaPreferencesPriKey: string = this.getRSAPreferencesPriKey();
-
-    let pubKey = this.preferences.getSync(rsaPreferencesPubKey, null);
-    let priKey = this.preferences.getSync(rsaPreferencesPriKey, null);
-    if(pubKey && priKey) return;
-
-    let keyPair = this.getAsyKey();
-    if(keyPair) {
-      let valuePub: string = this.base64.encodeToStringSync(keyPair.pubKey.getEncoded().data);
-      let valuePri: string = this.base64.encodeToStringSync(keyPair.priKey.getEncoded().data);
-      
-      this.preferences.putSync(rsaPreferencesPubKey, valuePub);
-      this.preferences.putSync(rsaPreferencesPriKey, valuePri);
-      await this.preferences.flush();
-    } else {
-      console.error(TAG, 'createRSAKey failure .')
+    let huksOptions: huks.HuksOptions = {
+      properties: []
     }
-  }
 
-  protected getPublicKey(): cryptoFramework.PubKey | undefined {
-    if(!this.preferences) {
-      this.preferences = this.getPreferences();
-    };
-    let pubKey: cryptoFramework.PubKey | undefined = undefined;
-
-    let rsaPreferencesPubKey: string = this.getRSAPreferencesPubKey();
-
-    let value = this.preferences?.getSync(rsaPreferencesPubKey, null);
-    let encrypted: Uint8Array = this.base64.decodeSync(value as string);
-    let rsaGenerator = cryptoFramework.createAsyKeyGenerator(this.TYPE_RSA);
-    let keyPair: cryptoFramework.KeyPair = rsaGenerator.convertKeySync({ data: encrypted }, null);
-    pubKey = keyPair.pubKey;
-
-    return pubKey;
-  }
-
-  protected getPrivateKey(): cryptoFramework.PriKey | undefined {
-    if(!this.preferences) {
-      this.preferences = this.getPreferences();
-    };
-    let priKey: cryptoFramework.PriKey | undefined = undefined;
-
-    let rsaPreferencesPriKey: string = this.getRSAPreferencesPriKey();
-    let value = this.preferences?.getSync(rsaPreferencesPriKey, null);
-    let encrypted: Uint8Array = this.base64.decodeSync(value as string);
-    let rsaGenerator = cryptoFramework.createAsyKeyGenerator(this.TYPE_RSA);
-    let keyPair: cryptoFramework.KeyPair = rsaGenerator.convertKeySync(null, { data: encrypted });
-    priKey = keyPair.priKey;
-
-    return priKey;
-  }
-
-  getPreferences() {
-    return preferences.getPreferencesSync(this.context, { name: this.SECRET_RSA_KEY_PREFERENCES_NAME });
-  }
-
-  protected getRSAPreferencesPubKey(): string {
-    return "e8cM5mqNRf85XYNjoJiFAj7B9ZBU1co7nsz1Wt3R0wV7ovlwcpkzCRq";
-  }
-
-  protected getRSAPreferencesPriKey(): string {
-    return "Mcem8fwdn4IhqqCmHCc+5vnRjoWlYvTSGNl1/5UN2hLo5uJdb60A4Eo+P8J8pvAfG9ibI2pUeazCaPjk0Dg7r1FI4jv8tF4bgQqKOe7h0BKfN";
+    // 判断密钥是否存在
+    await huks.hasKeyItem(this.SECRET_RSA_KEY_PREFERENCES_NAME, huksOptions).then(async (data) => {
+      if (data) {
+        TLog.i(TAG, '密钥已存在');
+      } else {
+        await this.generateKeyItem();
+      }
+    }).catch(async (error: Error) => {
+      console.error(TAG, `callback: hasKeyItem input arg invalid, ` + JSON.stringify(error));
+      await this.generateKeyItem();
+    });
   }
 
   async removePreferencesKey() {
-    if(this.preferences) {
-      const pubPreferenceKey = this.getRSAPreferencesPubKey();
-      const priPreferenceKey = this.getRSAPreferencesPriKey();
-      const pubKey = this.preferences.getSync(pubPreferenceKey, null);
-      const priKey = this.preferences.getSync(priPreferenceKey, null);
-      if(pubKey && priKey) {
-        this.preferences.deleteSync(pubPreferenceKey);
-        this.preferences.deleteSync(priPreferenceKey);
-        await this.preferences.flush();
-      };
+    let huksOptions: huks.HuksOptions = {
+      properties: []
+    }
+
+    try {
+      huks.deleteKeyItem(this.SECRET_RSA_KEY_PREFERENCES_NAME, huksOptions, (error, _) => {
+        if (error) {
+          console.error(TAG, `deleteKeyItem: ` + JSON.stringify(error));
+        } else {
+          TLog.i(TAG, '密钥已删除');
+        }
+      });
+    } catch (error) {
+      console.error(TAG, `removePreferencesKey: ` + JSON.stringify(error));
     }
   }
 
-  private getAsyKey(): cryptoFramework.KeyPair | undefined {
-    try {
-      let keyPair: cryptoFramework.KeyPair;
-      let asyKeyGenerator = cryptoFramework.createAsyKeyGenerator(this.TYPE_RSA);
-      keyPair = asyKeyGenerator.generateKeyPairSync();
-      return keyPair;
-    } catch (e) {
-      console.error(TAG, `getPublicKey sync error, ${e.code}, ${e.message}`);
-      return undefined;
+  /////////////////////////////////////////ohos.security.huks//////////////////////////////////////
+
+  protected getRsaGenerateProperties(): Array<huks.HuksParam> {
+    let properties: Array<huks.HuksParam> = [{
+      tag: huks.HuksTag.HUKS_TAG_ALGORITHM,
+      value: huks.HuksKeyAlg.HUKS_ALG_RSA
+    }, {
+      tag: huks.HuksTag.HUKS_TAG_KEY_SIZE,
+      value: huks.HuksKeySize.HUKS_RSA_KEY_SIZE_2048
+    }, {
+      tag: huks.HuksTag.HUKS_TAG_PURPOSE,
+      value: huks.HuksKeyPurpose.HUKS_KEY_PURPOSE_ENCRYPT |
+      huks.HuksKeyPurpose.HUKS_KEY_PURPOSE_DECRYPT
+    }];
+    return properties;
+  }
+
+  protected getRsaEncryptProperties(): Array<huks.HuksParam> {
+    let properties: Array<huks.HuksParam> = [{
+      tag: huks.HuksTag.HUKS_TAG_ALGORITHM,
+      value: huks.HuksKeyAlg.HUKS_ALG_RSA
+    }, {
+      tag: huks.HuksTag.HUKS_TAG_KEY_SIZE,
+      value: huks.HuksKeySize.HUKS_RSA_KEY_SIZE_2048
+    }, {
+      tag: huks.HuksTag.HUKS_TAG_PURPOSE,
+      value: huks.HuksKeyPurpose.HUKS_KEY_PURPOSE_ENCRYPT
+    }, {
+      tag: huks.HuksTag.HUKS_TAG_PADDING,
+      value: huks.HuksKeyPadding.HUKS_PADDING_PKCS1_V1_5
+    }, {
+      tag: huks.HuksTag.HUKS_TAG_BLOCK_MODE,
+      value: huks.HuksCipherMode.HUKS_MODE_ECB
+    }, {
+      tag: huks.HuksTag.HUKS_TAG_DIGEST,
+      value: huks.HuksKeyDigest.HUKS_DIGEST_NONE
+    }];
+    TLog.i(TAG, 'RSA加密算法: RSA_ECB_PKCS1Padding');
+    return properties;
+  }
+
+  protected getRsaDecryptProperties(): Array<huks.HuksParam> {
+    let properties: Array<huks.HuksParam> = [{
+      tag: huks.HuksTag.HUKS_TAG_ALGORITHM,
+      value: huks.HuksKeyAlg.HUKS_ALG_RSA
+    }, {
+      tag: huks.HuksTag.HUKS_TAG_KEY_SIZE,
+      value: huks.HuksKeySize.HUKS_RSA_KEY_SIZE_2048
+    }, {
+      tag: huks.HuksTag.HUKS_TAG_PURPOSE,
+      value: huks.HuksKeyPurpose.HUKS_KEY_PURPOSE_DECRYPT
+    }, {
+      tag: huks.HuksTag.HUKS_TAG_PADDING,
+      value: huks.HuksKeyPadding.HUKS_PADDING_PKCS1_V1_5
+    }, {
+      tag: huks.HuksTag.HUKS_TAG_BLOCK_MODE,
+      value: huks.HuksCipherMode.HUKS_MODE_ECB
+    }, {
+      tag: huks.HuksTag.HUKS_TAG_DIGEST,
+      value: huks.HuksKeyDigest.HUKS_DIGEST_NONE
+    }];
+    TLog.i(TAG, 'RSA解密算法: RSA_ECB_PKCS1Padding');
+    return properties;
+  }
+
+  /**
+   * 生成密钥
+   */
+  protected async generateKeyItem() {
+    let genProperties = this.getRsaGenerateProperties();
+    let options: huks.HuksOptions = {
+      properties: genProperties
     }
+
+    await huks.generateKeyItem(this.SECRET_RSA_KEY_PREFERENCES_NAME, options)
+      .then((data) => {
+        TLog.d(TAG, `promise: generate RSA Key success, data = ${JSON.stringify(data)}`);
+      }).catch((error: Error) => {
+        console.error(TAG, `promise: generate RSA Key failed, ${JSON.stringify(error)}`);
+      });
   }
 }

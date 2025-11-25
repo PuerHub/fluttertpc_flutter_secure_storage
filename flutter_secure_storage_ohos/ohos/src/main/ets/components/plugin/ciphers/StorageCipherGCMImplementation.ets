@@ -18,6 +18,7 @@ import { cryptoFramework } from '@kit.CryptoArchitectureKit';
 import KeyCipher from './KeyCipher';
 import StorageCipher18Implementation from './StorageCipher18Implementation';
 import { mergeUint8Arrays, splitUint8Array } from '../utils';
+import TLog from '../utils/TLog';
 
 const TAG = 'SecureStorage::StorageCipherGCMImplementation';
 
@@ -34,62 +35,82 @@ export default class StorageCipherGCMImplementation extends StorageCipher18Imple
   }
 
   protected override getCipher(): cryptoFramework.Cipher {
-    return cryptoFramework.createCipher("AES128|GCM|NoPadding");
+    try {
+      return cryptoFramework.createCipher("AES128|GCM|NoPadding");
+    } catch (e) {
+      let message = `getCipher failure: error code ${e.code} error message ${e.message}`;
+      console.error(TAG, message);
+      throw new Error(`${TAG} -> ${message}`);
+    }
   }
 
   override async encrypt(input: cryptoFramework.DataBlob): Promise<cryptoFramework.DataBlob> {
-    // 再次进入应用时, 需要重新获取 secretKey
-    await this.getAESSecretKey();
-
-    if(!this.cipher) {
-      this.cipher = this.getCipher();
+    try {
+      // 再次进入应用时, 需要重新获取 secretKey
+      await this.getAESSecretKey();
+      if (!this.cipher) {
+        this.cipher = this.getCipher();
+      }
+      TLog.d(TAG, '加密方式: AES_GCM_NoPadding');
+      let gcmParamsSpec = this.getParameterSpec();
+      this.cipher.initSync(cryptoFramework.CryptoMode.ENCRYPT_MODE, this.secretKey, gcmParamsSpec);
+      let encryptUpdate = this.cipher.updateSync(input);
+      let authTag = this.cipher.doFinalSync(null);
+      let combined = mergeUint8Arrays(authTag.data, gcmParamsSpec.iv.data);
+      combined = mergeUint8Arrays(combined, encryptUpdate.data);
+      return {
+        data: combined
+      };
+    } catch (e) {
+      let message = `encrypt failure: error code ${e.code} error message ${e.message}`;
+      console.error(TAG, message);
+      throw new Error(`${TAG} -> ${message}`);
     }
-    let gcmParamsSpec = this.getParameterSpec();
-
-    this.cipher.initSync(cryptoFramework.CryptoMode.ENCRYPT_MODE, this.secretKey, gcmParamsSpec);
-    let encryptUpdate = this.cipher.updateSync(input);
-
-    let authTag = this.cipher.doFinalSync(null);
-
-    let combined = mergeUint8Arrays(authTag.data, gcmParamsSpec.iv.data);
-    combined = mergeUint8Arrays(combined, encryptUpdate.data);
-    return {
-      data: combined
-    };
-
   }
 
   override async decrypt(cipherText: cryptoFramework.DataBlob): Promise<cryptoFramework.DataBlob> {
-    // 再次进入应用时, 需要重新获取 secretKey
-    await this.getAESSecretKey();
-
-    if(!this.cipher) {
-      this.cipher = this.getCipher();
+    try {
+      // 再次进入应用时, 需要重新获取 secretKey
+      await this.getAESSecretKey();
+      if (!this.cipher) {
+        this.cipher = this.getCipher();
+      }
+      TLog.d(TAG, '解密方式: AES_GCM_NoPadding');
+      let gcmParamsSpec = this.getParameterSpec();
+      let authTagData = splitUint8Array(cipherText.data, 0, this.authTagSize);
+      gcmParamsSpec.authTag = {
+        data: authTagData
+      };
+      let ivPosition = this.authTagSize + this.ivSize;
+      let ivData = splitUint8Array(cipherText.data, this.authTagSize, ivPosition);
+      gcmParamsSpec.iv = {
+        data: ivData
+      };
+      let cipherData = splitUint8Array(cipherText.data, ivPosition, cipherText.data.length);
+      this.cipher.initSync(cryptoFramework.CryptoMode.DECRYPT_MODE, this.secretKey, gcmParamsSpec);
+      let decryptUpdate = this.cipher.updateSync({
+        data: cipherData
+      });
+      // gcm模式解密doFinal时传入空，验证init时传入的tag数据，如果验证失败会抛出异常。
+      let decryptData = this.cipher.doFinalSync(null);
+      if (decryptData == null) {
+        TLog.i(TAG, 'GCM decrypt success, decryptData is null');
+      }
+      return decryptUpdate;
+    } catch (e) {
+      let message = `decrypt failure: error code ${e.code} error message ${e.message}`;
+      console.error(TAG, message);
+      throw new Error(`${TAG} -> ${message}`);
     }
-    let gcmParamsSpec = this.getParameterSpec();
-
-    let authTagData = splitUint8Array(cipherText.data, 0, this.authTagSize);
-    gcmParamsSpec.authTag = { data: authTagData };
-    let ivPosition = this.authTagSize + this.ivSize;
-    let ivData = splitUint8Array(cipherText.data, this.authTagSize, ivPosition);
-    gcmParamsSpec.iv = { data: ivData };
-    let cipherData = splitUint8Array(cipherText.data, ivPosition, cipherText.data.length);
-
-    this.cipher.initSync(cryptoFramework.CryptoMode.DECRYPT_MODE, this.secretKey, gcmParamsSpec);
-    let decryptUpdate = this.cipher.updateSync({data: cipherData});
-    // gcm模式解密doFinal时传入空，验证init时传入的tag数据，如果验证失败会抛出异常。
-    let decryptData = this.cipher.doFinalSync(null);
-    if (decryptData == null) {
-      console.info('GCM decrypt success, decryptData is null');
-    }
-    return decryptUpdate;
   }
 
   protected override getParameterSpec(): cryptoFramework.GcmParamsSpec {
     let ivBlob: cryptoFramework.DataBlob = this.getIvBlob();
     let arr = [0, 0, 0, 0, 0, 0, 0, 0]; // 8 bytes
     let dataAad = new Uint8Array(arr);
-    let aadBlob: cryptoFramework.DataBlob = { data: dataAad };
+    let aadBlob: cryptoFramework.DataBlob = {
+      data: dataAad
+    };
     arr = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]; // 16 bytes
     let dataTag = new Uint8Array(arr);
     let tagBlob: cryptoFramework.DataBlob = {
@@ -105,6 +126,12 @@ export default class StorageCipherGCMImplementation extends StorageCipher18Imple
   }
 
   getIvBlob(): cryptoFramework.DataBlob {
-    return this.random.generateRandomSync(this.ivSize);
+    try {
+      return this.random.generateRandomSync(this.ivSize);
+    } catch (e) {
+      let message = `getIvBlob failure: error code ${e.code} error message ${e.message}`;
+      console.error(TAG, message);
+      throw new Error(`${TAG} -> ${message}`);
+    }
   }
 }

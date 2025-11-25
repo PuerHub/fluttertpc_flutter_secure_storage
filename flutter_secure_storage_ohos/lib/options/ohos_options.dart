@@ -12,14 +12,12 @@ enum OhosStorageCipherAlgorithm {
 
 class OhosOptions extends Options {
   const OhosOptions({
-    bool encryptedSharedPreferences = false,
+    bool encryptedSharedPreferences = false, // 当前没有作用
     bool resetOnError = false,
-    OhosKeyCipherAlgorithm ohosKeyCipherAlgorithm =
-        OhosKeyCipherAlgorithm.RSA_ECB_PKCS1Padding,
-    OhosStorageCipherAlgorithm ohosStorageCipherAlgorithm =
-        OhosStorageCipherAlgorithm.AES_CBC_PKCS7Padding,
-    this.sharedPreferencesName,
-    this.preferencesKeyPrefix,
+    OhosKeyCipherAlgorithm ohosKeyCipherAlgorithm = OhosKeyCipherAlgorithm.RSA_ECB_PKCS1Padding,
+    OhosStorageCipherAlgorithm ohosStorageCipherAlgorithm = OhosStorageCipherAlgorithm.AES_CBC_PKCS7Padding,
+    this.sharedPreferencesName, // 读取数据有问题
+    this.preferencesKeyPrefix, // 有问题，没有修改
   })  : _encryptedSharedPreferences = encryptedSharedPreferences,
         _resetOnError = resetOnError,
         _ohosKeyCipherAlgorithm = ohosKeyCipherAlgorithm,
@@ -88,12 +86,10 @@ class OhosOptions extends Options {
     String? sharedPreferencesName,
   }) =>
       OhosOptions(
-        encryptedSharedPreferences:
-            encryptedSharedPreferences ?? _encryptedSharedPreferences,
+        encryptedSharedPreferences: encryptedSharedPreferences ?? _encryptedSharedPreferences,
         resetOnError: resetOnError ?? _resetOnError,
         ohosKeyCipherAlgorithm: ohosKeyCipherAlgorithm ?? _ohosKeyCipherAlgorithm,
-        ohosStorageCipherAlgorithm:
-            ohosStorageCipherAlgorithm ?? _ohosStorageCipherAlgorithm,
+        ohosStorageCipherAlgorithm: ohosStorageCipherAlgorithm ?? _ohosStorageCipherAlgorithm,
         sharedPreferencesName: sharedPreferencesName,
         preferencesKeyPrefix: preferencesKeyPrefix,
       );

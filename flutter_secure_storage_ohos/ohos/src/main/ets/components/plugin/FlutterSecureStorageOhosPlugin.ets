@@ -22,9 +22,9 @@ import {
   MethodResult,
   BinaryMessenger,
   StandardMethodCodec,
-  EventChannel,
-  EventSink
+  EventChannel
 } from '@ohos/flutter_ohos';
+import { EventSink } from '@ohos/flutter_ohos/src/main/ets/plugin/common/EventChannel';
 import FlutterSecureStorage from './FlutterSecureStorage';
 
 const TAG: string = "SecureStorage::FlutterSecureStoragePlugin";
@@ -46,19 +46,19 @@ export default class FlutterSecureStorageOhosPlugin implements FlutterPlugin, Me
       this.secureStorage = new FlutterSecureStorage(context, new Map());
       this.channel = new MethodChannel(messenger, "plugins.it_nomads.com/flutter_secure_storage", StandardMethodCodec.INSTANCE);
       this.channel.setMethodCallHandler(this);
-      
+
       // 初始化事件通道
       this.eventChannel = new EventChannel(messenger, "plugins.it_nomads.com/flutter_secure_storage/events");
-     this.eventChannel.setStreamHandler({
-  onListen: (arg: ESObject, eventSink: EventSink): void => {
-    const key: string = arg as string;
-    this.registerListener(key, eventSink);
-  },
-  onCancel: (arg: ESObject): void => {
-    const key: string = arg as string;
-    this.unregisterListener(key);
-  }
-});
+      this.eventChannel.setStreamHandler({
+        onListen: (arg: ESObject, eventSink: EventSink): void => {
+          const key: string = arg as string;
+          this.registerListener(key, eventSink);
+        },
+        onCancel: (arg: ESObject): void => {
+          const key: string = arg as string;
+          this.unregisterListener(key);
+        }
+      });
     } catch (e) {
       console.error(TAG, "Registration failed", e);
     }
@@ -72,17 +72,17 @@ export default class FlutterSecureStorageOhosPlugin implements FlutterPlugin, Me
     this.initInstance(binding.getBinaryMessenger(), binding.getApplicationContext());
   }
 
-  onDetachedFromEngine(binding: FlutterPluginBinding): void {
+  onDetachedFromEngine(_: FlutterPluginBinding): void {
     if (this.channel !== null) {
       this.channel.setMethodCallHandler(null);
       this.channel = null;
     }
-    
+
     if (this.eventChannel !== null) {
       this.eventChannel.setStreamHandler(null);
       this.eventChannel = null;
     }
-    
+
     this.listeners.clear();
   }
 
@@ -112,7 +112,7 @@ export default class FlutterSecureStorageOhosPlugin implements FlutterPlugin, Me
   // 注销监听器
   private unregisterListener(key: string, eventSink?: EventSink): void {
     if (!this.listeners.has(key)) return;
-    
+
     if (eventSink !== undefined) {
       this.listeners.get(key)?.delete(eventSink);
     } else {
@@ -123,7 +123,7 @@ export default class FlutterSecureStorageOhosPlugin implements FlutterPlugin, Me
   // 触发监听器事件
   private notifyListeners(key: string, value: string | null): void {
     const event: EventListenerEvent = { key, value };
-    
+
     if (key === '*') {
       // 通知所有监听器（用于deleteAll）
       this.listeners.forEach((sinks: Set<EventSink>, k: string): void => {
@@ -221,11 +221,11 @@ export default class FlutterSecureStorageOhosPlugin implements FlutterPlugin, Me
           case "isCupertinoProtectedDataAvailable":
             result.success(null); // 鸿蒙不支持，返回null
             break;
-            
+
           case "onCupertinoProtectedDataAvailabilityChanged":
             result.notImplemented(); // 不实现此方法
             break;
-            
+
           default:
             result.notImplemented();
             break;

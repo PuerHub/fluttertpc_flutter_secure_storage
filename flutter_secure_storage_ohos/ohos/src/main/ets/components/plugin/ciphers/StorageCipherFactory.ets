@@ -93,24 +93,29 @@ export class StorageCipherFactory {
   private ELEMENT_PREFERENCES_ALGORITHM_STORAGE: string = this.ELEMENT_PREFERENCES_ALGORITHM_PREFIX + "Storage";
   private DEFAULT_KEY_ALGORITHM: OhosKeyCipherAlgorithm = OhosKeyCipherAlgorithm.RSA_ECB_PKCS1Padding;
   private DEFAULT_STORAGE_ALGORITHM: OhosStorageCipherAlgorithm = OhosStorageCipherAlgorithm.AES_CBC_PKCS7Padding;
-
   private savedKeyAlgorithm: KeyCipherAlgorithmInfo | null = null;
   private currentKeyAlgorithm: KeyCipherAlgorithmInfo | null = null;
   private savedStorageAlgorithm: StorageCipherAlgorithmInfo | null = null;
   private currentStorageAlgorithm: StorageCipherAlgorithmInfo | null = null;
 
-  constructor(source: preferences.Preferences , options: Map<String, Object>) {
-    let algorithmKey: preferences.ValueType = source.getSync(this.ELEMENT_PREFERENCES_ALGORITHM_KEY, this.DEFAULT_KEY_ALGORITHM);
-    this.savedKeyAlgorithm = KeyCipherAlgorithmInfo.keyCipherAlgorithms[algorithmKey as OhosKeyCipherAlgorithm];
+  constructor(source: preferences.Preferences, options: Map<String, Object>) {
+    try {
+      let algorithmKey: preferences.ValueType = source.getSync(this.ELEMENT_PREFERENCES_ALGORITHM_KEY, this.DEFAULT_KEY_ALGORITHM);
+      this.savedKeyAlgorithm = KeyCipherAlgorithmInfo.keyCipherAlgorithms[algorithmKey as OhosKeyCipherAlgorithm];
 
-    let storageAlgorithmKey: preferences.ValueType = source.getSync(this.ELEMENT_PREFERENCES_ALGORITHM_STORAGE, this.DEFAULT_STORAGE_ALGORITHM);
-    this.savedStorageAlgorithm = StorageCipherAlgorithmInfo.storageCipherAlgorithms[storageAlgorithmKey as OhosStorageCipherAlgorithm];
+      let storageAlgorithmKey: preferences.ValueType = source.getSync(this.ELEMENT_PREFERENCES_ALGORITHM_STORAGE, this.DEFAULT_STORAGE_ALGORITHM);
+      this.savedStorageAlgorithm = StorageCipherAlgorithmInfo.storageCipherAlgorithms[storageAlgorithmKey as OhosStorageCipherAlgorithm];
 
-    let currAlgorithmKey: preferences.ValueType = this.getFromOptionsWithDefault(options, "ohosKeyCipherAlgorithm", this.DEFAULT_KEY_ALGORITHM);
-    this.currentKeyAlgorithm = KeyCipherAlgorithmInfo.keyCipherAlgorithms[currAlgorithmKey as OhosKeyCipherAlgorithm];
+      let currAlgorithmKey: preferences.ValueType = this.getFromOptionsWithDefault(options, "ohosKeyCipherAlgorithm", this.DEFAULT_KEY_ALGORITHM);
+      this.currentKeyAlgorithm = KeyCipherAlgorithmInfo.keyCipherAlgorithms[currAlgorithmKey as OhosKeyCipherAlgorithm];
 
-    let currStorageAlgorithmKey: preferences.ValueType = this.getFromOptionsWithDefault(options, "ohosStorageCipherAlgorithm", this.DEFAULT_STORAGE_ALGORITHM);
-    this.currentStorageAlgorithm = StorageCipherAlgorithmInfo.storageCipherAlgorithms[currStorageAlgorithmKey as OhosStorageCipherAlgorithm];
+      let currStorageAlgorithmKey: preferences.ValueType =
+        this.getFromOptionsWithDefault(options, "ohosStorageCipherAlgorithm", this.DEFAULT_STORAGE_ALGORITHM);
+      this.currentStorageAlgorithm = StorageCipherAlgorithmInfo.storageCipherAlgorithms[currStorageAlgorithmKey as OhosStorageCipherAlgorithm];
+    } catch (e) {
+      let message = `constructor failure: error code ${e.code} error message ${e.message}`;
+      console.error(TAG, message);
+    }
   }
 
   private getFromOptionsWithDefault(options: Map<String, Object>, key: string, defaultValue: string): string {
@@ -123,7 +128,7 @@ export class StorageCipherFactory {
   }
 
   getSavedStorageCipher(context: Context): StorageCipher18Implementation | null {
-    if(this.savedKeyAlgorithm?.keyCipher && this.savedStorageAlgorithm?.storageCipher) {
+    if (this.savedKeyAlgorithm?.keyCipher && this.savedStorageAlgorithm?.storageCipher) {
       let keyCipher: RSACipher18Implementation = this.savedKeyAlgorithm.keyCipher(context);
       let cipher: StorageCipher18Implementation = this.savedStorageAlgorithm.storageCipher(context, keyCipher);
       return cipher;
@@ -134,7 +139,7 @@ export class StorageCipherFactory {
   }
 
   getCurrentStorageCipher(context: Context): StorageCipher18Implementation | null {
-    if(this.currentKeyAlgorithm?.keyCipher && this.currentStorageAlgorithm?.storageCipher) {
+    if (this.currentKeyAlgorithm?.keyCipher && this.currentStorageAlgorithm?.storageCipher) {
       let keyCipher: RSACipher18Implementation = this.currentKeyAlgorithm?.keyCipher(context);
       let cipher: StorageCipher18Implementation = this.currentStorageAlgorithm.storageCipher(context, keyCipher);
       return cipher;
@@ -145,12 +150,17 @@ export class StorageCipherFactory {
   }
 
   storeCurrentAlgorithms(preferences: preferences.Preferences) {
-    preferences.putSync(this.ELEMENT_PREFERENCES_ALGORITHM_KEY, this.currentKeyAlgorithm?.name);
-    preferences.putSync(this.ELEMENT_PREFERENCES_ALGORITHM_STORAGE, this.currentStorageAlgorithm?.name);
+    try {
+      preferences.putSync(this.ELEMENT_PREFERENCES_ALGORITHM_KEY, this.currentKeyAlgorithm?.name);
+      preferences.putSync(this.ELEMENT_PREFERENCES_ALGORITHM_STORAGE, this.currentStorageAlgorithm?.name);
+    } catch (e) {
+      let message = `storeCurrentAlgorithms failure: error code ${e.code} error message ${e.message}`;
+      console.error(TAG, message);
+    }
   }
 
   async removeSaveAlgorithms(context: Context) {
-    if(this.savedKeyAlgorithm?.keyCipher && this.savedStorageAlgorithm?.storageCipher) {
+    if (this.savedKeyAlgorithm?.keyCipher && this.savedStorageAlgorithm?.storageCipher) {
       let keyCipher: RSACipher18Implementation = this.savedKeyAlgorithm?.keyCipher(context);
       let cipher: StorageCipher18Implementation = this.savedStorageAlgorithm.storageCipher(context, keyCipher);
       await keyCipher.removePreferencesKey();

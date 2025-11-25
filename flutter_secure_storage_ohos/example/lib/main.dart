@@ -17,14 +17,13 @@ class ItemsWidget extends StatefulWidget {
   ItemsWidgetState createState() => ItemsWidgetState();
 }
 
-enum _Actions { deleteAll,readAll }
+enum _Actions { deleteAll, readAll }
 
 enum _ItemActions { delete, edit, containsKey, read }
 
 class ItemsWidgetState extends State<ItemsWidget> {
   final _storage = const FlutterSecureStorage();
-  final _accountNameController =
-      TextEditingController(text: 'flutter_secure_storage_service');
+  final _accountNameController = TextEditingController(text: 'flutter_secure_storage_service');
 
   List<_SecItem> _items = [];
 
@@ -43,15 +42,10 @@ class ItemsWidgetState extends State<ItemsWidget> {
       ohOptions: _getOhosOptions(),
     );
 
-    all.entries
-        .map((entry) => {
-    });
+    all.entries.map((entry) => {});
 
     setState(() {
-      _items = all.entries
-          .map((entry) => _SecItem(entry.key, entry.value))
-          .toList(growable: false);
-
+      _items = all.entries.map((entry) => _SecItem(entry.key, entry.value)).toList(growable: false);
     });
   }
 
@@ -87,12 +81,14 @@ class ItemsWidgetState extends State<ItemsWidget> {
         // sharedPreferencesName: 'Test2',
         // preferencesKeyPrefix: 'Test'
       );
-  OhosOptions _getOhosOptions() => const OhosOptions(
-    sharedPreferencesName: 'sharedPreferencesName',
-  );
 
-  String? _getAccountName() =>
-      _accountNameController.text.isEmpty ? null : _accountNameController.text;
+  OhosOptions _getOhosOptions() => const OhosOptions(
+        sharedPreferencesName: 'sharedPreferencesName',
+        ohosKeyCipherAlgorithm: OhosKeyCipherAlgorithm.RSA_ECB_OAEPwithSHA_256andMGF1Padding,
+        ohosStorageCipherAlgorithm: OhosStorageCipherAlgorithm.AES_GCM_NoPadding,
+      );
+
+  String? _getAccountName() => _accountNameController.text.isEmpty ? null : _accountNameController.text;
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -122,7 +118,7 @@ class ItemsWidgetState extends State<ItemsWidget> {
                   value: _Actions.deleteAll,
                   child: Text('Delete all'),
                 ),
-                 const PopupMenuItem(
+                const PopupMenuItem(
                   key: Key('read_all'),
                   value: _Actions.readAll,
                   child: Text('readAll'),
@@ -138,8 +134,7 @@ class ItemsWidgetState extends State<ItemsWidget> {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: TextFormField(
                   controller: _accountNameController,
-                  decoration:
-                      const InputDecoration(labelText: 'kSecAttrService'),
+                  decoration: const InputDecoration(labelText: 'kSecAttrService'),
                 ),
               ),
             Expanded(
@@ -148,10 +143,8 @@ class ItemsWidgetState extends State<ItemsWidget> {
                 itemBuilder: (BuildContext context, int index) => ListTile(
                   trailing: PopupMenuButton(
                     key: Key('popup_row_$index'),
-                    onSelected: (_ItemActions action) =>
-                        _performAction(action, _items[index], context),
-                    itemBuilder: (BuildContext context) =>
-                        <PopupMenuEntry<_ItemActions>>[
+                    onSelected: (_ItemActions action) => _performAction(action, _items[index], context),
+                    itemBuilder: (BuildContext context) => <PopupMenuEntry<_ItemActions>>[
                       PopupMenuItem(
                         value: _ItemActions.delete,
                         child: Text(
@@ -242,9 +235,7 @@ class ItemsWidgetState extends State<ItemsWidget> {
         break;
       case _ItemActions.read:
         final key = await _displayTextInputDialog(context, item.key);
-        final result =
-            await _storage.read(key: key, aOptions: _getAndroidOptions(),
-              ohOptions: _getOhosOptions());
+        final result = await _storage.read(key: key, aOptions: _getAndroidOptions(), ohOptions: _getOhosOptions());
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -292,8 +283,7 @@ class ItemsWidgetState extends State<ItemsWidget> {
 }
 
 class _EditItemWidget extends StatelessWidget {
-  _EditItemWidget(String text)
-      : _controller = TextEditingController(text: text);
+  _EditItemWidget(String text) : _controller = TextEditingController(text: text);
 
   final TextEditingController _controller;
 
