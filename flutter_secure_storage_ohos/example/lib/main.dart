@@ -28,6 +28,16 @@ class ItemsWidgetState extends State<ItemsWidget> {
 
   List<_SecItem> _items = [];
 
+  void _isProtectedDataAvailable() {
+    final ScaffoldMessengerState scaffold = ScaffoldMessenger.of(context);
+    scaffold.showSnackBar(
+      SnackBar(
+        content: Text('readAll: true'),
+        backgroundColor: Colors.green,
+      ),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -113,6 +123,7 @@ class ItemsWidgetState extends State<ItemsWidget> {
                     break;
                   case _Actions.readAll:
                     _readAll();
+                    _isProtectedDataAvailable();
                     break;
                 }
               },

@@ -100,17 +100,17 @@ export class StorageCipherFactory {
   private currentStorageAlgorithm: StorageCipherAlgorithmInfo | null = null;
 
   constructor(source: preferences.Preferences , options: Map<String, Object>) {
-    let algorithmKey: preferences.ValueType = source.getSync(this.ELEMENT_PREFERENCES_ALGORITHM_KEY, this.DEFAULT_KEY_ALGORITHM);
-    this.savedKeyAlgorithm = KeyCipherAlgorithmInfo.keyCipherAlgorithms[algorithmKey as OhosKeyCipherAlgorithm];
+    let algorithmKeyIdentifier: preferences.ValueType = source.getSync(this.ELEMENT_PREFERENCES_ALGORITHM_KEY, this.DEFAULT_KEY_ALGORITHM);
+    this.savedKeyAlgorithm = KeyCipherAlgorithmInfo.keyCipherAlgorithms[algorithmKeyIdentifier as OhosKeyCipherAlgorithm];
 
-    let storageAlgorithmKey: preferences.ValueType = source.getSync(this.ELEMENT_PREFERENCES_ALGORITHM_STORAGE, this.DEFAULT_STORAGE_ALGORITHM);
-    this.savedStorageAlgorithm = StorageCipherAlgorithmInfo.storageCipherAlgorithms[storageAlgorithmKey as OhosStorageCipherAlgorithm];
+    let storageAlgorithmKeyIdentifier: preferences.ValueType = source.getSync(this.ELEMENT_PREFERENCES_ALGORITHM_STORAGE, this.DEFAULT_STORAGE_ALGORITHM);
+    this.savedStorageAlgorithm = StorageCipherAlgorithmInfo.storageCipherAlgorithms[storageAlgorithmKeyIdentifier as OhosStorageCipherAlgorithm];
 
-    let currAlgorithmKey: preferences.ValueType = this.getFromOptionsWithDefault(options, "ohosKeyCipherAlgorithm", this.DEFAULT_KEY_ALGORITHM);
-    this.currentKeyAlgorithm = KeyCipherAlgorithmInfo.keyCipherAlgorithms[currAlgorithmKey as OhosKeyCipherAlgorithm];
+    let currAlgorithmKeyIdentifier: preferences.ValueType = this.getFromOptionsWithDefault(options, "ohosKeyCipherAlgorithm", this.DEFAULT_KEY_ALGORITHM);
+    this.currentKeyAlgorithm = KeyCipherAlgorithmInfo.keyCipherAlgorithms[currAlgorithmKeyIdentifier as OhosKeyCipherAlgorithm];
 
-    let currStorageAlgorithmKey: preferences.ValueType = this.getFromOptionsWithDefault(options, "ohosStorageCipherAlgorithm", this.DEFAULT_STORAGE_ALGORITHM);
-    this.currentStorageAlgorithm = StorageCipherAlgorithmInfo.storageCipherAlgorithms[currStorageAlgorithmKey as OhosStorageCipherAlgorithm];
+    let currStorageAlgorithmKeyIdentifier: preferences.ValueType = this.getFromOptionsWithDefault(options, "ohosStorageCipherAlgorithm", this.DEFAULT_STORAGE_ALGORITHM);
+    this.currentStorageAlgorithm = StorageCipherAlgorithmInfo.storageCipherAlgorithms[currStorageAlgorithmKeyIdentifier as OhosStorageCipherAlgorithm];
   }
 
   private getFromOptionsWithDefault(options: Map<String, Object>, key: string, defaultValue: string): string {

@@ -34,10 +34,10 @@ export default class RSACipher18Implementation implements KeyCipher {
     this.preferences = this.getPreferences();
   }
 
-  async RSAEncrypt(key: cryptoFramework.Key): Promise<Uint8Array> {
+  async RSAEncrypt(identifier: cryptoFramework.Key): Promise<Uint8Array> {
     this.createRSAKeysIfNeeded();
 
-    let data: Uint8Array = key.getEncoded().data;
+    let data: Uint8Array = identifier.getEncoded().data;
     let publicKey = this.getPublicKey();
 
     let cipher: cryptoFramework.Cipher = this.getRSACipher();
@@ -64,8 +64,8 @@ export default class RSACipher18Implementation implements KeyCipher {
   // 把 DataBlob 转为 Key
   protected getKey(keyBlob: cryptoFramework.DataBlob, algorithm: string): cryptoFramework.Key {
     let symKeyGenerator = cryptoFramework.createSymKeyGenerator(algorithm);
-    let symKey: cryptoFramework.Key = symKeyGenerator.convertKeySync(keyBlob);
-    return symKey;
+    let symKeyIdentifier: cryptoFramework.Key = symKeyGenerator.convertKeySync(keyBlob);
+    return symKeyIdentifier;
   }
 
   protected getRSACipher() {
@@ -100,7 +100,7 @@ export default class RSACipher18Implementation implements KeyCipher {
     if(!this.preferences) {
       this.preferences = this.getPreferences();
     };
-    let pubKey: cryptoFramework.PubKey | undefined = undefined;
+    let pubKeyIdentifier: cryptoFramework.PubKey | undefined = undefined;
 
     let rsaPreferencesPubKey: string = this.getRSAPreferencesPubKey();
 
@@ -108,25 +108,25 @@ export default class RSACipher18Implementation implements KeyCipher {
     let encrypted: Uint8Array = this.base64.decodeSync(value as string);
     let rsaGenerator = cryptoFramework.createAsyKeyGenerator(this.TYPE_RSA);
     let keyPair: cryptoFramework.KeyPair = rsaGenerator.convertKeySync({ data: encrypted }, null);
-    pubKey = keyPair.pubKey;
+    pubKeyIdentifier = keyPair.pubKey;
 
-    return pubKey;
+    return pubKeyIdentifier;
   }
 
   protected getPrivateKey(): cryptoFramework.PriKey | undefined {
     if(!this.preferences) {
       this.preferences = this.getPreferences();
     };
-    let priKey: cryptoFramework.PriKey | undefined = undefined;
+    let priKeyIdentifier: cryptoFramework.PriKey | undefined = undefined;
 
     let rsaPreferencesPriKey: string = this.getRSAPreferencesPriKey();
     let value = this.preferences?.getSync(rsaPreferencesPriKey, null);
     let encrypted: Uint8Array = this.base64.decodeSync(value as string);
     let rsaGenerator = cryptoFramework.createAsyKeyGenerator(this.TYPE_RSA);
     let keyPair: cryptoFramework.KeyPair = rsaGenerator.convertKeySync(null, { data: encrypted });
-    priKey = keyPair.priKey;
+    priKeyIdentifier = keyPair.priKey;
 
-    return priKey;
+    return priKeyIdentifier;
   }
 
   getPreferences() {
