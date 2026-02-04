@@ -29,7 +29,7 @@ export default class StorageCipher18Implementation implements StorageCipher {
   protected ivSize: number = 16;
   private KEY_ALGORITHM: string = "AES128";
   protected cipher: cryptoFramework.Cipher | null = null;
-  protected secretKey: cryptoFramework.Key | null = null;
+  protected secretKeyIdentifier: cryptoFramework.Key | null = null;
   base64: util.Base64Helper = new util.Base64Helper();
   preferences: preferences.Preferences | null = null;
   rsaCipher: KeyCipher | null = null;
@@ -41,20 +41,20 @@ export default class StorageCipher18Implementation implements StorageCipher {
   }
 
   async getAESSecretKey() {
-    if(this.secretKey && this.preferences) return;
+    if(this.secretKeyIdentifier && this.preferences) return;
 
     this.preferences = preferences.getPreferencesSync(this.context, { name: this.SECRET_KEY_PREFERENCES_NAME });
     let aesPreferencesKey: string = this.getAESPreferencesKey();
-    let aesKey: preferences.ValueType = this.preferences.getSync(aesPreferencesKey, null);
-    if (aesKey != null && this.rsaCipher) {
-      let encrypted: Uint8Array = this.base64.decodeSync(aesKey as string);
-      this.secretKey = await this.rsaCipher.RSADecrypt(encrypted, this.KEY_ALGORITHM);
+    let aesKeyIdentifier: preferences.ValueType = this.preferences.getSync(aesPreferencesKey, null);
+    if (aesKeyIdentifier != null && this.rsaCipher) {
+      let encrypted: Uint8Array = this.base64.decodeSync(aesKeyIdentifier as string);
+      this.secretKeyIdentifier = await this.rsaCipher.RSADecrypt(encrypted, this.KEY_ALGORITHM);
       console.log(TAG, "Succeeded in getting preferences.");
       return;
     }
 
-    this.secretKey = this.genSymKeyByData();
-    const encryptedKey: Uint8Array | undefined = await this.rsaCipher?.RSAEncrypt(this.secretKey);
+    this.secretKeyIdentifier = this.genSymKeyByData();
+    const encryptedKey: Uint8Array | undefined = await this.rsaCipher?.RSAEncrypt(this.secretKeyIdentifier);
     let value: string = this.base64.encodeToStringSync(encryptedKey);
     if(!this.preferences) {
       console.error(TAG, ' Failed to get preferences, preferences is undefined.');
@@ -72,8 +72,8 @@ export default class StorageCipher18Implementation implements StorageCipher {
     this.preferences = preferences.getPreferencesSync(this.context, { name: this.SECRET_KEY_PREFERENCES_NAME });
     let aesPreferencesKey: string = this.getAESPreferencesKey();
 
-    let aesKey: preferences.ValueType = this.preferences.getSync(aesPreferencesKey, null);
-    if(aesKey) {
+    let aesKeyIdentifier: preferences.ValueType = this.preferences.getSync(aesPreferencesKey, null);
+    if(aesKeyIdentifier) {
       this.preferences.deleteSync(aesPreferencesKey);
       await this.preferences.flush();
     }
@@ -92,7 +92,7 @@ export default class StorageCipher18Implementation implements StorageCipher {
     }
     let ivParameterSpec: cryptoFramework.IvParamsSpec = this.getParameterSpec();
 
-    this.cipher.initSync(cryptoFramework.CryptoMode.ENCRYPT_MODE, this.secretKey, ivParameterSpec);
+    this.cipher.initSync(cryptoFramework.CryptoMode.ENCRYPT_MODE, this.secretKeyIdentifier, ivParameterSpec);
     let cipherData: cryptoFramework.DataBlob = this.cipher.doFinalSync(input);
     let combined = mergeUint8Arrays(ivParameterSpec.iv.data, cipherData.data);
     return {
@@ -112,7 +112,7 @@ export default class StorageCipher18Implementation implements StorageCipher {
     ivParameterSpec.iv = { data };
     let cipherData = splitUint8Array(cipherText.data, this.ivSize, cipherText.data.length);
 
-    this.cipher.initSync(cryptoFramework.CryptoMode.DECRYPT_MODE, this.secretKey, ivParameterSpec);
+    this.cipher.initSync(cryptoFramework.CryptoMode.DECRYPT_MODE, this.secretKeyIdentifier, ivParameterSpec);
     let decryptData = this.cipher.doFinalSync({
       data: cipherData
     });
@@ -121,8 +121,8 @@ export default class StorageCipher18Implementation implements StorageCipher {
 
   protected genSymKeyByData(): cryptoFramework.SymKey {
     let aesGenerator = cryptoFramework.createSymKeyGenerator(this.KEY_ALGORITHM);
-    let symKey: cryptoFramework.SymKey = aesGenerator.generateSymKeySync();
-    return symKey;
+    let symKeyIdentifier: cryptoFramework.SymKey = aesGenerator.generateSymKeySync();
+    return symKeyIdentifier;
   }
 
   protected getParameterSpec(): cryptoFramework.IvParamsSpec {
