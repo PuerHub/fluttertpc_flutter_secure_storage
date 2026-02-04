@@ -134,10 +134,10 @@ export default class FlutterSecureStorage implements KeyPrefixInterface {
       rawMap.forEach(async (rawVal, rawKey) => {
         const keyWithPrefix: string = rawKey;
         if (keyWithPrefix.includes(this.getKeyPrefix)) {
-          const key = rawKey.split('_')[1];
+          const identifier = rawKey.split('_')[1];
           const valuePromise: Promise<string> = this.decodeRawValue(rawVal);
           promises.push(valuePromise.then((value: string) => {
-            all.set(key, value);
+            all.set(identifier, value);
           }))
         }
       })
