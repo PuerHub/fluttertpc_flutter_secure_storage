@@ -46,7 +46,7 @@ export default class StorageCipherGCMImplementation extends StorageCipher18Imple
     }
     let gcmParamsSpec = this.getParameterSpec();
 
-    this.cipher.initSync(cryptoFramework.CryptoMode.ENCRYPT_MODE, this.secretKey, gcmParamsSpec);
+    this.cipher.initSync(cryptoFramework.CryptoMode.ENCRYPT_MODE, this.secretKeyIdentifier, gcmParamsSpec);
     let encryptUpdate = this.cipher.updateSync(input);
 
     let authTag = this.cipher.doFinalSync(null);
@@ -75,7 +75,7 @@ export default class StorageCipherGCMImplementation extends StorageCipher18Imple
     gcmParamsSpec.iv = { data: ivData };
     let cipherData = splitUint8Array(cipherText.data, ivPosition, cipherText.data.length);
 
-    this.cipher.initSync(cryptoFramework.CryptoMode.DECRYPT_MODE, this.secretKey, gcmParamsSpec);
+    this.cipher.initSync(cryptoFramework.CryptoMode.DECRYPT_MODE, this.secretKeyIdentifier, gcmParamsSpec);
     let decryptUpdate = this.cipher.updateSync({data: cipherData});
     // gcm模式解密doFinal时传入空，验证init时传入的tag数据，如果验证失败会抛出异常。
     let decryptData = this.cipher.doFinalSync(null);

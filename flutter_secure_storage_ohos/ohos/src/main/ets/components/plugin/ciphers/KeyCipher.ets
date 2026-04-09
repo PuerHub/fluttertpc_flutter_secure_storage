@@ -17,7 +17,7 @@ import { cryptoFramework } from '@kit.CryptoArchitectureKit';
 
 export default interface KeyCipher {
 
-  RSAEncrypt(key: cryptoFramework.Key): Promise<Uint8Array>;
+  RSAEncrypt(identifier: cryptoFramework.Key): Promise<Uint8Array>;
 
   RSADecrypt(wrappedKey: Uint8Array, algorithm: string): Promise<cryptoFramework.Key>;
 }

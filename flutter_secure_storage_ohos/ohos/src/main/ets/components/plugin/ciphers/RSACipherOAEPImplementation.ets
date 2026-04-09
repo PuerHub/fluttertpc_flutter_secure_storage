@@ -29,9 +29,9 @@ export default class RSACipherOAEPImplementation extends RSACipher18Implementati
     return cryptoFramework.createCipher('RSA2048|PKCS1_OAEP|SHA256|MGF1_SHA1');
   }
 
-  override async RSAEncrypt(key: cryptoFramework.Key): Promise<Uint8Array> {
+  override async RSAEncrypt(identifier: cryptoFramework.Key): Promise<Uint8Array> {
     this.createRSAKeysIfNeeded();
-    let data: Uint8Array = key.getEncoded().data;
+    let data: Uint8Array = identifier.getEncoded().data;
     let publicKey = this.getPublicKey();
 
     let cipher: cryptoFramework.Cipher = this.getRSACipher();

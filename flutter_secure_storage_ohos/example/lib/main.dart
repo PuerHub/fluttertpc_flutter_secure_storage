@@ -17,7 +17,7 @@ class ItemsWidget extends StatefulWidget {
   ItemsWidgetState createState() => ItemsWidgetState();
 }
 
-enum _Actions { deleteAll,readAll }
+enum _Actions { deleteAll, readAll }
 
 enum _ItemActions { delete, edit, containsKey, read }
 
@@ -27,6 +27,16 @@ class ItemsWidgetState extends State<ItemsWidget> {
       TextEditingController(text: 'flutter_secure_storage_service');
 
   List<_SecItem> _items = [];
+
+  void _isProtectedDataAvailable() {
+    final ScaffoldMessengerState scaffold = ScaffoldMessenger.of(context);
+    scaffold.showSnackBar(
+      SnackBar(
+        content: Text('readAll: true'),
+        backgroundColor: Colors.green,
+      ),
+    );
+  }
 
   @override
   void initState() {
@@ -43,15 +53,12 @@ class ItemsWidgetState extends State<ItemsWidget> {
       ohOptions: _getOhosOptions(),
     );
 
-    all.entries
-        .map((entry) => {
-    });
+    all.entries.map((entry) => {});
 
     setState(() {
       _items = all.entries
           .map((entry) => _SecItem(entry.key, entry.value))
           .toList(growable: false);
-
     });
   }
 
@@ -88,8 +95,8 @@ class ItemsWidgetState extends State<ItemsWidget> {
         // preferencesKeyPrefix: 'Test'
       );
   OhosOptions _getOhosOptions() => const OhosOptions(
-    sharedPreferencesName: 'sharedPreferencesName',
-  );
+        sharedPreferencesName: 'sharedPreferencesName',
+      );
 
   String? _getAccountName() =>
       _accountNameController.text.isEmpty ? null : _accountNameController.text;
@@ -113,6 +120,7 @@ class ItemsWidgetState extends State<ItemsWidget> {
                     break;
                   case _Actions.readAll:
                     _readAll();
+                    _isProtectedDataAvailable();
                     break;
                 }
               },
@@ -122,7 +130,7 @@ class ItemsWidgetState extends State<ItemsWidget> {
                   value: _Actions.deleteAll,
                   child: Text('Delete all'),
                 ),
-                 const PopupMenuItem(
+                const PopupMenuItem(
                   key: Key('read_all'),
                   value: _Actions.readAll,
                   child: Text('readAll'),
@@ -242,9 +250,10 @@ class ItemsWidgetState extends State<ItemsWidget> {
         break;
       case _ItemActions.read:
         final key = await _displayTextInputDialog(context, item.key);
-        final result =
-            await _storage.read(key: key, aOptions: _getAndroidOptions(),
-              ohOptions: _getOhosOptions());
+        final result = await _storage.read(
+            key: key,
+            aOptions: _getAndroidOptions(),
+            ohOptions: _getOhosOptions());
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
