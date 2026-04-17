@@ -35,7 +35,7 @@ export default class RSACipher18Implementation implements KeyCipher {
   }
 
   async RSAEncrypt(key: cryptoFramework.Key): Promise<Uint8Array> {
-    this.createRSAKeysIfNeeded();
+    await this.createRSAKeysIfNeeded();
 
     let data: Uint8Array = key.getEncoded().data;
     let publicKey = this.getPublicKey();
@@ -49,7 +49,7 @@ export default class RSACipher18Implementation implements KeyCipher {
   }
 
   async RSADecrypt(wrappedKey: Uint8Array, algorithm: string): Promise<cryptoFramework.Key> {
-    this.createRSAKeysIfNeeded();
+    await this.createRSAKeysIfNeeded();
     let privateKey = this.getPrivateKey();
 
     let cipher: cryptoFramework.Cipher = this.getRSACipher();

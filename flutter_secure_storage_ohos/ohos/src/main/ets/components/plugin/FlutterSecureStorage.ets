@@ -26,11 +26,17 @@ interface KeyPrefixInterface {
   set setKeyPrefix(value: string);
 }
 
+interface OrderedKeysResult {
+  keys: string[];
+  isDirty: boolean;
+}
+
 const TAG: string = "SecureStorage::FlutterSecureStorage";
 
 export default class FlutterSecureStorage implements KeyPrefixInterface {
   private context: Context | null = null;
   protected ELEMENT_PREFERENCES_KEY_PREFIX: string = "";
+  private KEY_ORDER_PREFERENCES_KEY: string = "__flutter_secure_storage_key_order__";
   public options: Map<String, Object> = new Map();
   private SHARED_PREFERENCES_NAME: string = "FlutterSecureStorage";
   private dataPreferences: preferences.Preferences | null = null;
@@ -49,10 +55,15 @@ export default class FlutterSecureStorage implements KeyPrefixInterface {
       this.ensureInitialized();
       if(!this.dataPreferences || !this.storageCipher) return;
 
+      let isNewKey: boolean = !this.dataPreferences.hasSync(key);
+
       let result = await this.storageCipher.encrypt({data: StringToUint8Array(value)});
       let resultStr = this.base64.encodeToStringSync(result.data);
 
       await this.dataPreferences.put(key, resultStr);
+      if (isNewKey) {
+        this.persistKeyOrder(this.appendKeyToOrder(this.getKeyOrder(), key));
+      }
       await this.dataPreferences.flush();
     } catch (e) {
       console.error(TAG, 'error code ' + e.code + 'error message ' + e.message);
@@ -82,6 +93,11 @@ export default class FlutterSecureStorage implements KeyPrefixInterface {
     this.ELEMENT_PREFERENCES_KEY_PREFIX = key;
   }
 
+  /**
+   * 按显式维护的键顺序读取全部数据，避免应用重启后枚举顺序漂移。
+   *
+   * @returns 按插入顺序返回的明文键值对集合。
+   */
   public async readAll(): Promise<Map<string, string>>{
     let all: Map<string, string> =  new Map();
     try {
@@ -90,19 +106,24 @@ export default class FlutterSecureStorage implements KeyPrefixInterface {
 
       let raw: Object = this.dataPreferences.getAllSync();
       let rawMap = convertObjectToMap(raw);
+      let orderedKeysResult: OrderedKeysResult = this.resolveOrderedKeys(rawMap);
+      let orderedKeys: string[] = orderedKeysResult.keys;
       let promises: Promise<void>[] = [];
 
-      if(!rawMap.size) return all;
-      rawMap.forEach(async (rawVal, rawKey) => {
-        const keyWithPrefix: string = rawKey;
-        if (keyWithPrefix.includes(this.getKeyPrefix)) {
-          const key = rawKey.split('_')[1];
-          const valuePromise: Promise<string> = this.decodeRawValue(rawVal);
-          promises.push(valuePromise.then((value: string) => {
-            all.set(key, value);
-          }))
+      if(!orderedKeys.length) return all;
+      if (orderedKeysResult.isDirty) {
+        // 兼容历史数据：首次读取时把缺失的顺序索引补齐并落盘。
+        this.persistKeyOrder(orderedKeys);
+        await this.dataPreferences.flush();
+      }
+
+      orderedKeys.forEach((rawKey: string) => {
+        let valuePromise: Promise<void> | null = this.loadOrderedValue(rawMap, rawKey, all);
+        if (valuePromise) {
+          promises.push(valuePromise);
         }
-      })
+      });
+
       await Promise.all(promises);
     } catch (e) {
       console.error(TAG, 'readAll failure, error code ' + e.code + 'error message ' + e.message);
@@ -116,6 +137,7 @@ export default class FlutterSecureStorage implements KeyPrefixInterface {
       if(!this.dataPreferences) return;
 
       await this.dataPreferences.delete(key);
+      this.persistKeyOrder(this.removeKeyFromOrder(this.getKeyOrder(), key));
       await this.dataPreferences.flush();
     } catch (e) {
       console.error(TAG, 'delete failure, error code ' + e.code + 'error message ' + e.message);
@@ -130,12 +152,15 @@ export default class FlutterSecureStorage implements KeyPrefixInterface {
       let raw: Object = this.dataPreferences.getAllSync();
       let rawMap = convertObjectToMap(raw);
 
-      rawMap.forEach(async (rawVal, rawKey) => {
+      rawMap.forEach((rawVal, rawKey) => {
         const keyWithPrefix: string = rawKey;
         if (keyWithPrefix.includes(this.getKeyPrefix)) {
           this.dataPreferences?.deleteSync(rawKey);
         }
       })
+
+      // 清空业务数据时同步删除内部顺序索引，避免后续读取到脏元数据。
+      this.dataPreferences.deleteSync(this.KEY_ORDER_PREFERENCES_KEY);
 
       await this.dataPreferences.flush();
     } catch (e) {
@@ -145,27 +170,39 @@ export default class FlutterSecureStorage implements KeyPrefixInterface {
 
   public containsKey(key: string): boolean {
     this.ensureInitialized();
-    if (this.dataPreferences) {
-      return this.dataPreferences.hasSync(key);
-    } else {
-      return false;
+    try {
+      if (this.dataPreferences) {
+        return this.dataPreferences.hasSync(key);
+      }
+    } catch (e) {
+      console.error(TAG, 'containsKey failure, error code ' + e.code + 'error message ' + e.message);
     }
+    return false;
   }
 
   private ensureInitialized() {
     if(this.dataPreferences && this.storageCipher) return;
     this.ensureOptions();
-    // 创建 preferences
-    let nonEncryptedPreferences: preferences.Preferences = preferences.getPreferencesSync(this.context, { name: this.SHARED_PREFERENCES_NAME});
-    // 初始化 storageCipher
-    if (this.storageCipher == null) {
-      try {
-        this.initStorageCipher(nonEncryptedPreferences);
-      } catch (e) {
-        console.error(TAG,"StorageCipher initialization failure", e);
-      }
+    if (!this.context) {
+      console.error(TAG, 'context is null');
+      return;
     }
-    this.dataPreferences = nonEncryptedPreferences;
+
+    try {
+      // 创建 preferences
+      let nonEncryptedPreferences: preferences.Preferences = preferences.getPreferencesSync(this.context, { name: this.SHARED_PREFERENCES_NAME});
+      // 初始化 storageCipher
+      if (this.storageCipher == null) {
+        try {
+          this.initStorageCipher(nonEncryptedPreferences);
+        } catch (e) {
+          console.error(TAG,"StorageCipher initialization failure", e);
+        }
+      }
+      this.dataPreferences = nonEncryptedPreferences;
+    } catch (e) {
+      console.error(TAG, 'preferences initialization failure, error code ' + e.code + 'error message ' + e.message);
+    }
   }
 
   protected ensureOptions() {
@@ -254,5 +291,155 @@ export default class FlutterSecureStorage implements KeyPrefixInterface {
       console.error(TAG, "decodeRawValue failure. code =" + e.code + ", message =" + e.message);
       return '';
     }
+  }
+
+  /**
+   * 判断指定键是否为插件真实业务数据键，排除内部元数据键。
+   *
+   * @param key preferences 中的原始键。
+   * @returns 是否属于带前缀的业务数据键。
+   */
+  private isStorageValueKey(key: string): boolean {
+    return key.startsWith(this.getKeyPrefix + '_');
+  }
+
+  /**
+   * 读取持久化的键顺序索引。
+   *
+   * @returns 已保存的原始键顺序列表；索引不存在或损坏时返回空数组。
+   */
+  private getKeyOrder(): string[] {
+    if (!this.dataPreferences) {
+      return [];
+    }
+
+    let storedOrder: preferences.ValueType;
+    try {
+      storedOrder = this.dataPreferences.getSync(this.KEY_ORDER_PREFERENCES_KEY, '[]');
+    } catch (e) {
+      console.error(TAG, 'read key order failure, error code ' + e.code + 'error message ' + e.message);
+      return [];
+    }
+
+    if (typeof storedOrder !== 'string') {
+      return [];
+    }
+
+    try {
+      let parsed = JSON.parse(storedOrder) as Object[];
+      let keyOrder: string[] = [];
+      parsed.forEach((item: Object) => {
+        if (typeof item === 'string') {
+          keyOrder.push(item);
+        }
+      });
+      return keyOrder;
+    } catch (e) {
+      console.error(TAG, 'parse key order failure, error code ' + e.code + 'error message ' + e.message);
+      return [];
+    }
+  }
+
+  /**
+   * 将最新的键顺序索引写回 preferences。
+   *
+   * @param keyOrder 当前应持久化的原始键顺序列表。
+   */
+  private persistKeyOrder(keyOrder: string[]) {
+    if (!this.dataPreferences) {
+      return;
+    }
+
+    try {
+      this.dataPreferences.putSync(this.KEY_ORDER_PREFERENCES_KEY, JSON.stringify(keyOrder));
+    } catch (e) {
+      console.error(TAG, 'persist key order failure, error code ' + e.code + 'error message ' + e.message);
+    }
+  }
+
+  /**
+   * 新增键时将其追加到顺序索引尾部，保持插入顺序稳定。
+   *
+   * @param keyOrder 当前键顺序列表。
+   * @param key 待追加的原始键。
+   * @returns 更新后的键顺序列表。
+   */
+  private appendKeyToOrder(keyOrder: string[], key: string): string[] {
+    if (keyOrder.indexOf(key) >= 0) {
+      return keyOrder;
+    }
+
+    keyOrder.push(key);
+    return keyOrder;
+  }
+
+  /**
+   * 删除键时同步移除顺序索引中的对应项。
+   *
+   * @param keyOrder 当前键顺序列表。
+   * @param key 待移除的原始键。
+   * @returns 移除指定键后的键顺序列表。
+   */
+  private removeKeyFromOrder(keyOrder: string[], key: string): string[] {
+    return keyOrder.filter((savedKey: string) => savedKey !== key);
+  }
+
+  /**
+   * 根据当前存储内容和已持久化索引生成稳定的读取顺序。
+   *
+   * @param rawMap 当前 preferences 中的全部原始键值。
+   * @returns 计算后的稳定键顺序，以及是否需要回写索引。
+   */
+  private resolveOrderedKeys(rawMap: Map<string, string>): OrderedKeysResult {
+    let visibleKeys: string[] = [];
+    rawMap.forEach((rawVal, rawKey) => {
+      if (this.isStorageValueKey(rawKey) && typeof rawVal === 'string') {
+        visibleKeys.push(rawKey);
+      }
+    });
+
+    if (!visibleKeys.length) {
+      return { keys: [], isDirty: false };
+    }
+
+    let orderedKeys: string[] = [];
+    let orderedKeySet: Map<string, boolean> = new Map();
+    this.getKeyOrder().forEach((savedKey: string) => {
+      if (rawMap.has(savedKey) && this.isStorageValueKey(savedKey)) {
+        orderedKeys.push(savedKey);
+        orderedKeySet.set(savedKey, true);
+      }
+    });
+
+    let isDirty: boolean = orderedKeys.length !== visibleKeys.length;
+    visibleKeys.forEach((visibleKey: string) => {
+      if (!orderedKeySet.has(visibleKey)) {
+        // 老数据可能还没有顺序索引，这里按当前可见顺序补齐缺失项。
+        orderedKeys.push(visibleKey);
+        isDirty = true;
+      }
+    });
+
+    return { keys: orderedKeys, isDirty };
+  }
+
+  /**
+   * 解密单个有序键并写入返回结果集合。
+   *
+   * @param rawMap 当前 preferences 中的全部原始键值。
+   * @param rawKey 本次要处理的原始键。
+   * @param all 解密后的返回结果集合。
+   * @returns 有效键返回异步解密任务；无效键返回 null。
+   */
+  private loadOrderedValue(rawMap: Map<string, string>, rawKey: string, all: Map<string, string>): Promise<void> | null {
+    let rawVal: string | undefined = rawMap.get(rawKey);
+    if (typeof rawVal !== 'string') {
+      return null;
+    }
+
+    let key = rawKey.substring(this.getKeyPrefix.length + 1);
+    return this.decodeRawValue(rawVal).then((value: string) => {
+      all.set(key, value);
+    });
   }
 }
