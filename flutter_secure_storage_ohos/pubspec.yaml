@@ -4,7 +4,7 @@ version: 1.2.2
 repository: https://gitee.com/openharmony-sig/fluttertpc_flutter_secure_storage
 
 environment:
-  sdk: '>=2.19.6 <3.7.0'
+  sdk: '>=2.19.6 <4.0.0'
   flutter: ">=2.5.0"
 
 dependencies:
