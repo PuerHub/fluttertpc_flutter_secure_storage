@@ -1,7 +1,7 @@
 name: flutter_secure_storage_ohos
 description: Flutter Secure Storage provides API to store data in secure storage. The preferences used in ohos.
 version: 1.2.2
-repository: https://gitee.com/openharmony-sig/fluttertpc_flutter_secure_storage
+repository: https://gitcode.com/CPF-Flutter/fluttertpc_flutter_secure_storage
 
 environment:
   sdk: '>=2.19.6 <4.0.0'

@@ -21,8 +21,8 @@
 
 dependencies:
   flutter_secure_storage_ohos:
-    git: 
-      url: https://gitcode.com/openharmony-sig/fluttertpc_flutter_secure_storage.git
+    git:
+      url: https://gitcode.com/CPF-Flutter/fluttertpc_flutter_secure_storage.git
       path: flutter_secure_storage_ohos
 
 ...
