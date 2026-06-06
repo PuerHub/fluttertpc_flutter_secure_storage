@@ -22,7 +22,7 @@ Go to the project directory and add the following dependencies in pubspec.yaml
 dependencies:
   flutter_secure_storage_ohos:
     git: 
-      url: https://gitcode.com/openharmony-sig/fluttertpc_flutter_secure_storage.git
+      url: https://gitcode.com/CPF-Flutter/fluttertpc_flutter_secure_storage.git
       path: flutter_secure_storage_ohos
       
 ...
