@@ -142,7 +142,10 @@ export default class FlutterSecureStorageOhosPlugin implements FlutterPlugin, Me
       result.success("OpenHarmony ^ ^ ");
     } else {
       let resetOnError: boolean = false;
-      if (this.secureStorage === null) return;
+      if (this.secureStorage === null) {
+        result.error("not_initialized", "secureStorage is null", null);
+        return;
+      }
       this.secureStorage.options = call.args.get("options") as Map<string, object>;
       resetOnError = this.secureStorage.getResetOnError();
       try {
@@ -236,11 +239,13 @@ export default class FlutterSecureStorageOhosPlugin implements FlutterPlugin, Me
             this.secureStorage.deleteAll();
             this.notifyListeners('*', null);
             result.success("Data has been reset");
-          } catch (e) {
-            console.error(TAG, `resetOnError and deleteAll failure, error code is ${e.code}, error message is ${e.message}`);
+          } catch (e2) {
+            console.error(TAG, `resetOnError and deleteAll failure, error code is ${e2.code}, error message is ${e2.message}`);
+            result.error(String(e2?.code ?? 'unknown'), String(e2?.message ?? ''), null);
           }
         } else {
           console.error(TAG, `resetOnError is false, error code is ${e.code}, error message is ${e.message}`);
+          result.error(String(e?.code ?? 'unknown'), String(e?.message ?? ''), null);
         }
       }
     }

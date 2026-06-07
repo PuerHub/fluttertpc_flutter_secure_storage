@@ -12,6 +12,7 @@ part './options/apple_options.dart';
 part './options/ios_options.dart';
 part './options/linux_options.dart';
 part './options/macos_options.dart';
+part './options/ohos_options.dart';
 part './options/web_options.dart';
 part './options/windows_options.dart';
 
@@ -24,6 +25,7 @@ class FlutterSecureStorage {
   final WindowsOptions wOptions;
   final WebOptions webOptions;
   final MacOsOptions mOptions;
+  final OhosOptions ohOptions;
 
   const FlutterSecureStorage({
     this.iOptions = IOSOptions.defaultOptions,
@@ -32,6 +34,7 @@ class FlutterSecureStorage {
     this.wOptions = WindowsOptions.defaultOptions,
     this.webOptions = WebOptions.defaultOptions,
     this.mOptions = MacOsOptions.defaultOptions,
+    this.ohOptions = OhosOptions.defaultOptions,
   });
 
   static const UNSUPPORTED_PLATFORM = 'unsupported_platform';
@@ -96,6 +99,7 @@ class FlutterSecureStorage {
     LinuxOptions? lOptions,
     WebOptions? webOptions,
     MacOsOptions? mOptions,
+    OhosOptions? ohOptions,
     WindowsOptions? wOptions,
   }) async {
     if (value == null) {
@@ -107,6 +111,7 @@ class FlutterSecureStorage {
           lOptions,
           webOptions,
           mOptions,
+          ohOptions,
           wOptions,
         ),
       );
@@ -120,6 +125,7 @@ class FlutterSecureStorage {
           lOptions,
           webOptions,
           mOptions,
+          ohOptions,
           wOptions,
         ),
       );
@@ -145,6 +151,7 @@ class FlutterSecureStorage {
     LinuxOptions? lOptions,
     WebOptions? webOptions,
     MacOsOptions? mOptions,
+    OhosOptions? ohOptions,
     WindowsOptions? wOptions,
   }) =>
       _platform.read(
@@ -155,6 +162,7 @@ class FlutterSecureStorage {
           lOptions,
           webOptions,
           mOptions,
+          ohOptions,
           wOptions,
         ),
       );
@@ -176,6 +184,7 @@ class FlutterSecureStorage {
     LinuxOptions? lOptions,
     WebOptions? webOptions,
     MacOsOptions? mOptions,
+    OhosOptions? ohOptions,
     WindowsOptions? wOptions,
   }) =>
       _platform.containsKey(
@@ -186,6 +195,7 @@ class FlutterSecureStorage {
           lOptions,
           webOptions,
           mOptions,
+          ohOptions,
           wOptions,
         ),
       );
@@ -209,6 +219,7 @@ class FlutterSecureStorage {
     LinuxOptions? lOptions,
     WebOptions? webOptions,
     MacOsOptions? mOptions,
+    OhosOptions? ohOptions,
     WindowsOptions? wOptions,
   }) async {
     await _platform.delete(
@@ -219,6 +230,7 @@ class FlutterSecureStorage {
         lOptions,
         webOptions,
         mOptions,
+        ohOptions,
         wOptions,
       ),
     );
@@ -252,6 +264,7 @@ class FlutterSecureStorage {
     LinuxOptions? lOptions,
     WebOptions? webOptions,
     MacOsOptions? mOptions,
+    OhosOptions? ohOptions,
     WindowsOptions? wOptions,
   }) =>
       _platform.readAll(
@@ -261,6 +274,7 @@ class FlutterSecureStorage {
           lOptions,
           webOptions,
           mOptions,
+          ohOptions,
           wOptions,
         ),
       );
@@ -280,6 +294,7 @@ class FlutterSecureStorage {
     LinuxOptions? lOptions,
     WebOptions? webOptions,
     MacOsOptions? mOptions,
+    OhosOptions? ohOptions,
     WindowsOptions? wOptions,
   }) async {
     await _platform.deleteAll(
@@ -289,6 +304,7 @@ class FlutterSecureStorage {
         lOptions,
         webOptions,
         mOptions,
+        ohOptions,
         wOptions,
       ),
     );
@@ -307,6 +323,7 @@ class FlutterSecureStorage {
     LinuxOptions? lOptions,
     WebOptions? webOptions,
     MacOsOptions? mOptions,
+    OhosOptions? ohOptions,
     WindowsOptions? wOptions,
   ) {
     if (kIsWeb) {
@@ -321,6 +338,8 @@ class FlutterSecureStorage {
       return wOptions?.params ?? this.wOptions.params;
     } else if (Platform.isMacOS) {
       return mOptions?.params ?? this.mOptions.params;
+    } else if (Platform.operatingSystem == 'ohos') {
+      return ohOptions?.params ?? this.ohOptions.params;
     } else {
       throw UnsupportedError(UNSUPPORTED_PLATFORM);
     }
